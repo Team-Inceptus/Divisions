@@ -1,7 +1,0 @@
-name: ${project.name}
-main: me.gamercoder215.divisions.Divisions
-version: ${plugin.version}
-api-version: 1.13
-description: ${project.description}
-author: GamerCoder215
-load: POSTWORLD
