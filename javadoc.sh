@@ -6,7 +6,7 @@ if [ ! -d "docs" ]; then
   mkdir docs
 fi;
 
-cp -Rfv paper/target/apidocs/* ./docs/
+cp -Rfv adventure/target/apidocs/* ./docs/
 
 git checkout gh-pages
 
