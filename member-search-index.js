@@ -1,0 +1,1 @@
+memberSearchIndex = [{"p":"me.gamercoder215.divisions.api.player","c":"DivisionsPlayer","l":"DivisionsPlayer()","u":"%3Cinit%3E()"},{"p":"me.gamercoder215.divisions.api","c":"DivisionsConfig","l":"getLogger()"},{"p":"me.gamercoder215.divisions.api","c":"DivisionsConfig","l":"getPlugin()"}];updateSearchResults();
