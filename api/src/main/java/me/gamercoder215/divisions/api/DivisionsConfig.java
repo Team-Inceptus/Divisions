@@ -26,4 +26,16 @@ public interface DivisionsConfig {
         return getPlugin().getLogger();
     }
 
+    /**
+     * Fetches the configuration instance.
+     * @return Divisions Configuration
+     */
+    static DivisionsConfig getConfiguration() { return (DivisionsConfig) getPlugin(); }
+
+    /**
+     * Whether Adventure API is enabled and is currently used.
+     * @return true if enabled, else false
+     */
+    boolean isAdventureEnabled();
+
 }
