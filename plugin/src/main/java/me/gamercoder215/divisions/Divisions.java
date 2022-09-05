@@ -12,24 +12,23 @@ public final class Divisions extends JavaPlugin implements DivisionsConfig {
 
     private static Logger LOGGER;
 
+    private static boolean adventureEnabled = false;
+
     private void checkPaper() {
         try {
             Class.forName("net.kyori.adventure.text.Component");
 
-            getLogger().info("Adventure API Detected! Loading...");
-
+            getLogger().config("Adventure API Detected! Loading...");
             Constructor<?> loader = Class.forName("me.gamercoder215.divisions.AdventureLoader").getConstructor(Plugin.class);
             loader.newInstance(this);
+
+            adventureEnabled = true;
         } catch (ClassNotFoundException ignored) {
         } catch (ReflectiveOperationException e) {
             print(e);
         }
     }
 
-    /**
-     * Prints a Throwable in the Plugin Namespace.
-     * @param e The Throwable to print.
-     */
     public static void print(@NotNull Throwable e) {
         LOGGER.info(e.getClass().getSimpleName());
         LOGGER.info("----------------------------------------");
@@ -44,4 +43,8 @@ public final class Divisions extends JavaPlugin implements DivisionsConfig {
         getLogger().info("Done!");
     }
 
+    @Override
+    public boolean isAdventureEnabled() {
+        return adventureEnabled;
+    }
 }
