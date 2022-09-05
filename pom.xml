@@ -51,6 +51,7 @@
     <inceptionYear>2022</inceptionYear>
 
     <modules>
+        <module>plugin</module>
         <module>api</module>
         <module>bukkit</module>
         <module>adventure</module>

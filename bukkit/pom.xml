@@ -8,11 +8,7 @@
     </parent>
 
     <artifactId>divisions-bukkit</artifactId>
-    <name>Divisions</name>
-
-    <properties>
-        <plugin.version>1.0.0</plugin.version>
-    </properties>
+    <name>Divisions-Bukkit</name>
 
     <build>
         <resources>
