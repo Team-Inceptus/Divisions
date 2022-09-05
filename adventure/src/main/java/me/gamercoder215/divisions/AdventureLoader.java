@@ -4,6 +4,7 @@ import org.bukkit.plugin.Plugin;
 
 final class AdventureLoader {
 
+
     public AdventureLoader(Plugin plugin) {
 
 
