@@ -25,15 +25,8 @@ public final class Divisions extends JavaPlugin implements DivisionsConfig {
             adventureEnabled = true;
         } catch (ClassNotFoundException ignored) {
         } catch (ReflectiveOperationException e) {
-            print(e);
+            DivisionsConfig.print(e);
         }
-    }
-
-    public static void print(@NotNull Throwable e) {
-        LOGGER.info(e.getClass().getSimpleName());
-        LOGGER.info("----------------------------------------");
-        LOGGER.info(e.getMessage());
-        for (StackTraceElement element : e.getStackTrace()) LOGGER.info(element.toString());
     }
 
     @Override
