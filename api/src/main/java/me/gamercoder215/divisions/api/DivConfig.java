@@ -11,7 +11,7 @@ import java.util.logging.Logger;
  * Represents Divisions Utilities and Configuration
  * @since 1.0.0
  */
-public interface DivisionsConfig {
+public interface DivConfig {
 
     /**
      * Fetches the Divisions Plugin.
@@ -52,7 +52,7 @@ public interface DivisionsConfig {
      * @return Divisions Configuration
      * @since 1.0.0
      */
-    static DivisionsConfig getConfiguration() { return (DivisionsConfig) getPlugin(); }
+    static DivConfig getConfiguration() { return (DivConfig) getPlugin(); }
 
     /**
      * Prints a Throwable in the Plugin Namespace.
@@ -65,6 +65,30 @@ public interface DivisionsConfig {
         getLogger().info(e.getMessage());
         for (StackTraceElement element : e.getStackTrace()) getLogger().info(element.toString());
     }
+
+    // Configuration
+
+    /**
+     * Fetches a String from the current language file.
+     * @param key Key to fetch
+     * @return String fetched, based on {@link #getLanguage()}
+     * @since 1.0.0
+     */
+    String get(String key);
+
+    /**
+     * Fetches a String from the current language file, with the plugin prefix in front.
+     * @param key Key to fetch
+     * @return Message fetched, based on {@link #getLanguage()}
+     */
+    String getMessage(String key);
+
+    /**
+     * Fetches the current language in the configuration.
+     * @return Current Language
+     * @since 1.0.0
+     */
+    String getLanguage();
 
     /**
      * Whether Adventure API is enabled and is currently used.
