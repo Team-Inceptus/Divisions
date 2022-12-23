@@ -1,6 +1,5 @@
-package us.teaminceptus.divisons;
+package us.teaminceptus.divisions;
 
-import us.teaminceptus.divisions.BukkitLoader;
 import us.teaminceptus.divisions.api.DivConfig;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;

@@ -1,6 +1,6 @@
-package me.gamercoder215.divisions.bukkit;
+package us.teaminceptus.divisions.loader.bukkit;
 
-import me.gamercoder215.divisions.api.Division;
+import us.teaminceptus.divisions.api.Division;
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
 

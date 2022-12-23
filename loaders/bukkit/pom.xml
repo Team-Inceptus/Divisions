@@ -2,25 +2,16 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>me.gamercoder215.divisions</groupId>
+        <groupId>us.teaminceptus.divisions</groupId>
         <artifactId>divisions-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <artifactId>divisions-bukkit</artifactId>
     <name>Divisions-Bukkit</name>
 
     <build>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>true</filtering>
-                <includes>
-                    <include>*.yml</include>
-                    <include>*.properties</include>
-                </includes>
-            </resource>
-        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -99,7 +90,7 @@
                                 <exclude>org.*</exclude>
                             </dependencySourceExcludes>
 
-                            <excludePackageNames>me.gamercoder215.divisions</excludePackageNames>
+                            <excludePackageNames>us.teaminceptus.divisions</excludePackageNames>
                         </configuration>
                     </execution>
                 </executions>
@@ -111,6 +102,12 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>divisions-api</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>divisions-abstract-loader</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>

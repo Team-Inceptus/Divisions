@@ -1,7 +1,6 @@
-package me.gamercoder215.divisions.adventure;
+package us.teaminceptus.divisions.loader.adventure;
 
-import me.gamercoder215.divisions.api.Division;
-import me.gamercoder215.divisions.bukkit.BukkitDivision;
+import us.teaminceptus.divisions.api.Division;
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
 
