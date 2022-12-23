@@ -1,6 +1,6 @@
-package me.gamercoder215.divisions.api.player;
+package us.teaminceptus.divisions.api.player;
 
-import me.gamercoder215.divisions.api.DivConfig;
+import us.teaminceptus.divisions.api.DivConfig;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;

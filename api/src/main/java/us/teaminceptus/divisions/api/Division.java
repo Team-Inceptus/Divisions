@@ -1,4 +1,4 @@
-package me.gamercoder215.divisions.api;
+package us.teaminceptus.divisions.api;
 
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;

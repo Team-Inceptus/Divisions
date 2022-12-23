@@ -1,10 +1,12 @@
-package me.gamercoder215.divisions;
+package us.teaminceptus.divisons;
 
-import me.gamercoder215.divisions.api.DivConfig;
+import us.teaminceptus.divisions.BukkitLoader;
+import us.teaminceptus.divisions.api.DivConfig;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import us.teaminceptus.divisions.loader.DivLoader;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,18 +19,18 @@ public final class Divisions extends JavaPlugin implements DivConfig {
     private static Logger LOGGER;
     private static FileConfiguration config;
 
-    private static boolean adventureEnabled = false;
+    private static DivLoader loader;
 
     private void checkPaper() {
         try {
             Class.forName("net.kyori.adventure.text.Component");
 
-            getLogger().config("Adventure API Detected! Loading...");
-            Constructor<?> loader = Class.forName("me.gamercoder215.divisions.AdventureLoader").getConstructor(Plugin.class);
-            loader.newInstance(this);
+            Constructor<? extends DivLoader> adventureLoader = Class.forName("us.teaminceptus.divisions.AdventureLoader")
+                    .asSubclass(DivLoader.class).getConstructor(Plugin.class);
+            loader = adventureLoader.newInstance(this);
 
-            adventureEnabled = true;
         } catch (ClassNotFoundException ignored) {
+            loader = new BukkitLoader(this);
         } catch (ReflectiveOperationException e) {
             DivConfig.print(e);
         }
@@ -41,6 +43,8 @@ public final class Divisions extends JavaPlugin implements DivConfig {
 
         getLogger().info("Loading Files...");
         config = getConfig();
+
+        checkPaper();
 
         getLogger().info("Done!");
     }
@@ -77,6 +81,6 @@ public final class Divisions extends JavaPlugin implements DivConfig {
 
     @Override
     public boolean isAdventureEnabled() {
-        return adventureEnabled;
+        return loader.isAdventureLoader();
     }
 }

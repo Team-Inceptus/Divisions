@@ -1,13 +1,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>me.gamercoder215.divisions</groupId>
+    <groupId>us.teaminceptus.divisions</groupId>
     <artifactId>divisions-parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Divisions-Parent</name>
     <description>Premium Guild Plugin for Spigot 1.8+</description>
-    <url>https://github.com/GamerCoder215/Divisions</url>
+    <url>https://github.com/Team-Inceptus/Divisions</url>
 
     <developers>
         <developer>
@@ -20,13 +20,14 @@
     </developers>
 
     <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
+        <java.version>8</java.version>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <github>GamerCoder215/Divisions</github>
+        <github>Team-Inceptus/Divisions</github>
 
-        <sonar.organization>gamercoder215</sonar.organization>
+        <sonar.organization>team-inceptus</sonar.organization>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
     </properties>
 
@@ -53,8 +54,25 @@
     <modules>
         <module>plugin</module>
         <module>api</module>
-        <module>bukkit</module>
-        <module>adventure</module>
+
+        <module>loaders/loader-abstract</module>
+        <module>loaders/bukkit</module>
+        <module>loaders/adventure</module>
+
+        <module>nms/abstract</module>
+        <module>nms/1_13_R1</module>
+        <module>nms/1_13_R2</module>
+        <module>nms/1_14_R1</module>
+        <module>nms/1_15_R1</module>
+        <module>nms/1_16_R1</module>
+        <module>nms/1_16_R2</module>
+        <module>nms/1_16_R3</module>
+        <module>nms/1_17_R1</module>
+        <module>nms/1_18_R1</module>
+        <module>nms/1_18_R2</module>
+        <module>nms/1_19_R1</module>
+        <module>nms/1_19_R2</module>
+
     </modules>
 
     <repositories>
@@ -67,6 +85,17 @@
             <id>papermc</id>
             <name>PaperMC Repository</name>
             <url>https://repo.papermc.io/repository/maven-public/</url>
+        </repository>
+        <repository>
+            <id>nms-repo</id>
+            <name>NMS Repository</name>
+            <url>https://repo.codemc.org/repository/nms/</url>
+            <releases>
+                <updatePolicy>never</updatePolicy>
+            </releases>
+            <snapshots>
+                <updatePolicy>never</updatePolicy>
+            </snapshots>
         </repository>
     </repositories>
 
@@ -105,10 +134,49 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.0.0-M7</version>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.8</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
     <dependencies>
+        <!-- Test Dependencies -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>4.10.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.9.1</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Other Dependencies -->
         <dependency>
             <groupId>org.jetbrains</groupId>
             <artifactId>annotations</artifactId>

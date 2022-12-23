@@ -1,4 +1,4 @@
-package me.gamercoder215.divisions.api.player;
+package us.teaminceptus.divisions.api.player;
 
 import org.jetbrains.annotations.NotNull;
 

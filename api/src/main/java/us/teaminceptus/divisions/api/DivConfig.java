@@ -1,4 +1,4 @@
-package me.gamercoder215.divisions.api;
+package us.teaminceptus.divisions.api;
 
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;

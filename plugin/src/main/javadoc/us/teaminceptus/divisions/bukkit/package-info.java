@@ -1,4 +1,4 @@
 /**
  * Main Package for Divisions Implementation related to the Bukkit/Spigot API.
  */
-package me.gamercoder215.divisions.bukkit;
+package us.teaminceptus.divisions.bukkit;

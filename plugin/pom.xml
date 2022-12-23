@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>me.gamercoder215.divisions</groupId>
+        <groupId>us.teaminceptus.divisions</groupId>
         <artifactId>divisions-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
@@ -82,6 +82,16 @@
     </build>
 
     <dependencies>
+        <!-- Hard Dependencies -->
+        <dependency>
+            <groupId>org.spigotmc</groupId>
+            <artifactId>spigot-api</artifactId>
+            <version>1.13-R0.1-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Abstraction | Loaders & API -->
+
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>divisions-api</artifactId>
@@ -90,38 +100,109 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>divisions-abstract-loader</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>divisions-bukkit</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.spigotmc</groupId>
-                    <artifactId>spigot-api</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>${project.groupId}</groupId>
-                    <artifactId>divisions-api</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>divisions-adventure</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>${project.groupId}</groupId>
-                    <artifactId>divisions-api</artifactId>
-                </exclusion>
-            </exclusions>
+        </dependency>
+
+        <!-- Abstraction | NMS -->
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>divisions-abstract</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>
-            <groupId>org.spigotmc</groupId>
-            <artifactId>spigot-api</artifactId>
-            <version>1.13-R0.1-SNAPSHOT</version>
-            <scope>provided</scope>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>divisions-1_13_R1</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>divisions-1_13_R2</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>divisions-1_14_R1</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>divisions-1_15_R1</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>divisions-1_16_R1</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>divisions-1_16_R2</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>divisions-1_16_R3</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>divisions-1_17_R1</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>divisions-1_18_R1</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>divisions-1_18_R2</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>divisions-1_19_R1</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>divisions-1_19_R2</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 
