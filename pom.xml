@@ -55,10 +55,6 @@
         <module>plugin</module>
         <module>api</module>
 
-        <module>loaders/loader-abstract</module>
-        <module>loaders/bukkit</module>
-        <module>loaders/adventure</module>
-
         <module>nms/abstract</module>
         <module>nms/1_13_R1</module>
         <module>nms/1_13_R2</module>

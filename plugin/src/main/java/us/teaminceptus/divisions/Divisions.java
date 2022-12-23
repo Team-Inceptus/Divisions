@@ -3,13 +3,10 @@ package us.teaminceptus.divisions;
 import us.teaminceptus.divisions.api.DivConfig;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
-import us.teaminceptus.divisions.loader.DivLoader;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Constructor;
 import java.util.Properties;
 import java.util.logging.Logger;
 
@@ -23,15 +20,9 @@ public final class Divisions extends JavaPlugin implements DivConfig {
     private void checkPaper() {
         try {
             Class.forName("net.kyori.adventure.text.Component");
-
-            Constructor<? extends DivLoader> adventureLoader = Class.forName("us.teaminceptus.divisions.AdventureLoader")
-                    .asSubclass(DivLoader.class).getConstructor(Plugin.class);
-            loader = adventureLoader.newInstance(this);
-
+            loader = new AdventureLoader(this);
         } catch (ClassNotFoundException ignored) {
             loader = new BukkitLoader(this);
-        } catch (ReflectiveOperationException e) {
-            DivConfig.print(e);
         }
     }
 
