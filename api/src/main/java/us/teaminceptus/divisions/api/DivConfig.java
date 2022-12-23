@@ -66,6 +66,15 @@ public interface DivConfig {
         for (StackTraceElement element : e.getStackTrace()) getLogger().info(element.toString());
     }
 
+    /**
+     * Fetches the folder that all divisions are stored in.
+     * @return Division Directory
+     * @since 1.0.0
+     */
+    static File getDivisionsDirectory() {
+        return new File(getDataFolder(), "divisions");
+    }
+
     // Configuration
 
     /**
