@@ -4,15 +4,11 @@
     <parent>
         <groupId>us.teaminceptus.divisions</groupId>
         <artifactId>divisions-parent</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.0.0</version>
     </parent>
 
     <artifactId>divisions</artifactId>
     <name>Divisions</name>
-
-    <properties>
-        <plugin.version>1.0.0</plugin.version>
-    </properties>
 
     <build>
         <resources>
@@ -90,29 +86,11 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- Abstraction | Loaders & API -->
+        <!-- Abstraction | API -->
 
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>divisions-api</artifactId>
-            <version>${project.version}</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>divisions-abstract-loader</artifactId>
-            <version>${project.version}</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>divisions-bukkit</artifactId>
-            <version>${project.version}</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>divisions-adventure</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>

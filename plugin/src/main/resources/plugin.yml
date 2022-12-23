@@ -1,6 +1,6 @@
 name: ${project.name}
 main: us.teaminceptus.divisons.Divisions
-version: ${plugin.version}
+version: ${project.version}
 api-version: 1.13
 description: ${project.description}
 author: GamerCoder215
