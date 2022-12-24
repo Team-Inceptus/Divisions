@@ -99,11 +99,4 @@ public interface DivConfig {
      */
     String getLanguage();
 
-    /**
-     * Whether Adventure API is enabled and is currently used.
-     * @return true if enabled, else false
-     * @since 1.0.0
-     */
-    boolean isAdventureEnabled();
-
 }

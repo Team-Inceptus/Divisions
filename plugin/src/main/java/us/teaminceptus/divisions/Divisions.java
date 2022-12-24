@@ -15,17 +15,6 @@ public final class Divisions extends JavaPlugin implements DivConfig {
     private static Logger LOGGER;
     private static FileConfiguration config;
 
-    private static DivLoader loader;
-
-    private void checkPaper() {
-        try {
-            Class.forName("net.kyori.adventure.text.Component");
-            loader = new AdventureLoader(this);
-        } catch (ClassNotFoundException ignored) {
-            loader = new BukkitLoader(this);
-        }
-    }
-
     @Override
     public void onEnable() {
         LOGGER = getLogger();
@@ -33,8 +22,6 @@ public final class Divisions extends JavaPlugin implements DivConfig {
 
         getLogger().info("Loading Files...");
         config = getConfig();
-
-        checkPaper();
 
         getLogger().info("Done!");
     }
@@ -69,8 +56,4 @@ public final class Divisions extends JavaPlugin implements DivConfig {
         return null;
     }
 
-    @Override
-    public boolean isAdventureEnabled() {
-        return loader.isAdventureLoader();
-    }
 }
