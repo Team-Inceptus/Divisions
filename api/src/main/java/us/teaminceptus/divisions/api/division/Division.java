@@ -1,4 +1,4 @@
-package us.teaminceptus.divisions.api;
+package us.teaminceptus.divisions.api.division;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -9,6 +9,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import us.teaminceptus.divisions.api.DivConfig;
 
 import java.io.*;
 import java.util.*;
@@ -25,9 +26,11 @@ public final class Division {
     private final long creationDate;
     private final OfflinePlayer owner;
 
+    private final Set<OfflinePlayer> members = new HashSet<>();
+
     private String name;
     private Location home = null;
-    private final Set<OfflinePlayer> members = new HashSet<>();
+    private double experience = 0.0;
 
     private Division(File folder, UUID id, long creationDate, OfflinePlayer owner, boolean save) {
         this.folder = folder;
@@ -57,6 +60,18 @@ public final class Division {
     @NotNull
     public String getName() {
         return name;
+    }
+
+    /**
+     * Sets the Division's Name.
+     * @param name Division Name
+     * @since 1.0.0
+     */
+    public void setName(@NotNull String name) {
+        if (name == null) throw new IllegalArgumentException("Division name cannot be null");
+
+        this.name = name;
+        save();
     }
 
     /**
@@ -99,6 +114,24 @@ public final class Division {
     }
 
     /**
+     * Sets the home of this Division.
+     * @param home Division Home
+     * @since 1.0.0
+     */
+    public void setHome(@Nullable Location home) {
+        this.home = home;
+        save();
+    }
+
+    /**
+     * Resets the home of the Division.
+     * @since 1.0.0
+     */
+    public void resetHome() {
+        setHome(null);
+    }
+
+    /**
      * Fetches an immutable set of this Division's members.
      * @return Division Members
      * @since 1.0.0
@@ -116,8 +149,10 @@ public final class Division {
      * @throws IllegalStateException if one or more divisions is invalid
      * @since 1.0.0
      */
+    @NotNull
     public static List<Division> getDivisions() throws IllegalStateException {
         List<Division> divisions = new ArrayList<>();
+
         for (File f : DivConfig.getDivisionsDirectory().listFiles()) {
             if (!f.isDirectory()) continue;
 
@@ -136,6 +171,54 @@ public final class Division {
         }
 
         return ImmutableList.copyOf(divisions);
+    }
+
+    /**
+     * Fetches a Division by its name.
+     * @param name Division Name
+     * @return Division
+     * @since 1.0.0
+     */
+    @Nullable
+    public static Division byName(@NotNull String name) {
+        if (name == null) throw new IllegalArgumentException("name cannot be null");
+        return getDivisions()
+                .stream()
+                .filter(d -> d.getName().equalsIgnoreCase(name))
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Fetches a Division by its unique identifier.
+     * @param id Division ID
+     * @return Division
+     * @since 1.0.0
+     */
+    @Nullable
+    public static Division byId(@NotNull UUID id) {
+        if (id == null) throw new IllegalArgumentException("id cannot be null");
+        return getDivisions()
+                .stream()
+                .filter(d -> d.getUniqueId().equals(id))
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Fetches a Division by its owner.
+     * @param owner Division Owner
+     * @return Division
+     * @since 1.0.0
+     */
+    @Nullable
+    public static Division byOwner(@NotNull OfflinePlayer owner) {
+        if (owner == null) throw new IllegalArgumentException("owner cannot be null");
+        return getDivisions()
+                .stream()
+                .filter(d -> d.getOwner().equals(owner))
+                .findFirst()
+                .orElse(null);
     }
 
     // Writing & Reading
@@ -185,8 +268,7 @@ public final class Division {
 
         FileConfiguration oConfig = YamlConfiguration.loadConfiguration(other);
         oConfig.set("name", this.name);
-
-        if (home != null) oConfig.set("home", this.home);
+        oConfig.set("home", this.home);
 
         oConfig.save(other);
     }
@@ -220,8 +302,7 @@ public final class Division {
 
         FileConfiguration oConfig = YamlConfiguration.loadConfiguration(other);
         d.name = oConfig.getString("name");
-
-        if (oConfig.isSet("home")) d.home = (Location) oConfig.get("home");
+        d.home = (Location) oConfig.get("home");
 
         return d;
     }
