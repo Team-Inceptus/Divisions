@@ -53,7 +53,7 @@ public final class Divisions extends JavaPlugin implements DivConfig {
 
     @Override
     public String getLanguage() {
-        return null;
+        return config.getString("language", "en");
     }
 
 }
