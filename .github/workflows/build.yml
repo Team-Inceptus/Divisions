@@ -92,7 +92,7 @@ jobs:
           cache: 'maven'
 
       - name: Build JavaDocs
-        run: mvn package
+        run: mvn package -pl "api"
 
       - name: Deploy JavaDoc
         run: bash javadoc.sh ${GITHUB_SHA::7}
