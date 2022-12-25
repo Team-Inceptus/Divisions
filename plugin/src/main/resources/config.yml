@@ -1,3 +1,15 @@
 # ${project.name} v${project.version} by GamerCoder215
 #
 # Divisions Configuration File
+
+# The Language to use for the plugin.
+
+# Valid Languages:
+# - en (English)
+# - es (Spanish / Español)
+# - fr (French / Français)
+# - de (German / Deutsch)
+# - pt (Portuguese / Português)
+# - ja (Japanese / 日本語)
+# - zh (Chinese / 中文)
+language: en
