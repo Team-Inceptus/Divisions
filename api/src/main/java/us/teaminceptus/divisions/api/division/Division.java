@@ -12,7 +12,9 @@ import org.jetbrains.annotations.Nullable;
 import us.teaminceptus.divisions.api.DivConfig;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Represents a Division
@@ -26,11 +28,16 @@ public final class Division {
     private final long creationDate;
     private final OfflinePlayer owner;
 
-    private final Set<OfflinePlayer> members = new HashSet<>();
-
     private String name;
     private Location home = null;
     private double experience = 0.0;
+
+    private final Map<DivisionAchievement, Integer> achievements = new EnumMap<>(DivisionAchievement.class);
+    private final Set<OfflinePlayer> members = new HashSet<>();
+
+    {
+        for (DivisionAchievement value : DivisionAchievement.values()) achievements.putIfAbsent(value, 0);
+    }
 
     private Division(File folder, UUID id, long creationDate, OfflinePlayer owner, boolean save) {
         this.folder = folder;
@@ -141,6 +148,18 @@ public final class Division {
         return ImmutableSet.copyOf(members);
     }
 
+    /**
+     * Fetches the level of a DivisionAchievement.
+     * @param achievement DivisionAchievement to use
+     * @return Level of Achievement
+     * @since 1.0.0
+     */
+    public int getAchievementLevel(@NotNull DivisionAchievement achievement) {
+        if (achievement == null) throw new IllegalArgumentException("Achievement cannot be null");
+
+        return achievements.getOrDefault(achievement, 0);
+    }
+
     // Static Methods
 
     /**
@@ -221,6 +240,19 @@ public final class Division {
                 .orElse(null);
     }
 
+    /**
+     * Deletes a Division.
+     * @param d Division to delete
+     * @since 1.0.0
+     */
+    public static void removeDivision(@NotNull Division d) {
+        if (d == null) throw new IllegalArgumentException("Division cannot be null");
+
+        File folder = d.getFolder();
+        for (File f : folder.listFiles()) f.delete();
+        folder.delete();
+    }
+
     // Writing & Reading
 
     /**
@@ -244,8 +276,7 @@ public final class Division {
         File info = new File(folder, "info.dat");
         if (!info.exists()) info.createNewFile();
 
-        FileOutputStream infoFs = new FileOutputStream(info);
-        ObjectOutputStream infoOs = new ObjectOutputStream(infoFs);
+        ObjectOutputStream infoOs = new ObjectOutputStream(Files.newOutputStream(info.toPath()));
         infoOs.writeObject(this.id);
         infoOs.writeLong(this.creationDate);
         infoOs.writeObject(this.owner.getUniqueId());
@@ -256,10 +287,22 @@ public final class Division {
         File members = new File(folder, "members.dat");
         if (!members.exists()) members.createNewFile();
 
-        FileOutputStream membersFs = new FileOutputStream(members);
-        ObjectOutputStream membersOs = new ObjectOutputStream(membersFs);
-        membersOs.writeObject(this.members.toArray(new OfflinePlayer[0]));
+        ObjectOutputStream membersOs = new ObjectOutputStream(Files.newOutputStream(members.toPath()));
+        membersOs.writeObject(
+                this.members
+                .stream()
+                .map(OfflinePlayer::getUniqueId)
+                .collect(Collectors.toList())
+        );
         membersOs.close();
+
+        // Achievements
+        File achievements = new File(folder, "achievements.dat");
+        if (!achievements.exists()) achievements.createNewFile();
+
+        ObjectOutputStream achievementsOs = new ObjectOutputStream(Files.newOutputStream(achievements.toPath()));
+        achievementsOs.writeObject(this.achievements);
+        achievementsOs.close();
 
         // Other Information
 
@@ -269,17 +312,20 @@ public final class Division {
         FileConfiguration oConfig = YamlConfiguration.loadConfiguration(other);
         oConfig.set("name", this.name);
         oConfig.set("home", this.home);
+        oConfig.set("experience", this.experience);
 
         oConfig.save(other);
     }
 
+    @SuppressWarnings("unchecked")
     @NotNull
     private static Division read(File folder) throws IOException, IllegalStateException, ReflectiveOperationException {
+        // ID Information
+
         File info = new File(folder, "info.dat");
         if (!info.exists()) throw new IllegalStateException("Could not find: info.dat");
 
-        FileInputStream infoFs = new FileInputStream(info);
-        ObjectInputStream infoIs = new ObjectInputStream(infoFs);
+        ObjectInputStream infoIs = new ObjectInputStream(Files.newInputStream(info.toPath()));
         UUID id = (UUID) infoIs.readObject();
         long creationDate = infoIs.readLong();
         OfflinePlayer owner = Bukkit.getOfflinePlayer((UUID) infoIs.readObject());
@@ -287,15 +333,32 @@ public final class Division {
 
         Division d = new Division(folder, id, creationDate, owner, false);
 
+        // Members
+
         File members = new File(folder, "members.dat");
         if (!members.exists()) throw new IllegalStateException("Could not find: members.dat");
 
-        FileInputStream membersFs = new FileInputStream(members);
-        ObjectInputStream membersIs = new ObjectInputStream(membersFs);
-        OfflinePlayer[] membersA = (OfflinePlayer[]) membersIs.readObject();
+        ObjectInputStream membersIs = new ObjectInputStream(Files.newInputStream(members.toPath()));
+        List<UUID> memberIds = (List<UUID>) membersIs.readObject();
         membersIs.close();
 
-        d.members.addAll(ImmutableSet.copyOf(membersA));
+        d.members.addAll(memberIds
+                .stream()
+                .map(Bukkit::getOfflinePlayer)
+                .collect(Collectors.toList()));
+
+        // Achievements
+
+        File achievements = new File(folder, "achievements.dat");
+        if (!achievements.exists()) throw new IllegalStateException("Could not find: achievements.dat");
+
+        ObjectInputStream achievementsIs = new ObjectInputStream(Files.newInputStream(achievements.toPath()));
+        Map<DivisionAchievement, Integer> achievementsMap = (Map<DivisionAchievement, Integer>) achievementsIs.readObject();
+        achievementsIs.close();
+
+        d.achievements.putAll(achievementsMap);
+
+        // Other Information
 
         File other = new File(folder, "other.yml");
         if (!other.exists()) throw new IllegalStateException("Could not find: other.yml");
@@ -303,6 +366,7 @@ public final class Division {
         FileConfiguration oConfig = YamlConfiguration.loadConfiguration(other);
         d.name = oConfig.getString("name");
         d.home = (Location) oConfig.get("home");
+        d.experience = oConfig.getDouble("experience", 0);
 
         return d;
     }
