@@ -10,12 +10,33 @@ import us.teaminceptus.divisions.api.DivConfig;
  */
 public enum DivisionAchievement {
 
+    /**
+     * Represents the Achievement for having 10, 25, 100, and 1,000 Members.
+     * @since 1.0.0
+     */
+    POPULATION_GROWTH("population_growth", 4),
+
+    /**
+     * Represents the Achievement for having 10K, 100K, 1M, 5M, and 15M Experience.
+     * @since 1.0.0
+     */
+    EXPERIENCE_COLLECTOR("experience_collector", 5),
     ;
 
     private final String key;
+    private final int maxLevel;
 
-    DivisionAchievement(String key) {
+    DivisionAchievement(String key, int maxLevel) {
         this.key = key;
+        this.maxLevel = maxLevel;
+    }
+
+    /**
+     * Fetches the maximum level of this Achievement.
+     * @return Maximum Level
+     */
+    public int getMaxLevel() {
+        return maxLevel;
     }
 
     /**
