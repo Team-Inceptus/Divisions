@@ -18,6 +18,7 @@ public interface DivConfig {
      * @return The Divisions Plugin.
      * @since 1.0.0
      */
+    @NotNull
     static Plugin getPlugin() {
         return Bukkit.getPluginManager().getPlugin("Divisions");
     }
@@ -27,6 +28,7 @@ public interface DivConfig {
      * @return Plugin Data Folder
      * @since 1.0.0
      */
+    @NotNull
     static File getDataFolder() { return getPlugin().getDataFolder(); }
 
     /**
@@ -34,6 +36,7 @@ public interface DivConfig {
      * @return Player Directory
      * @since 1.0.0
      */
+    @NotNull
     static File getPlayerDirectory() {
         return new File(getDataFolder(), "players");
     }
@@ -43,6 +46,7 @@ public interface DivConfig {
      * @return Plugin Logger
      * @since 1.0.0
      */
+    @NotNull
     static Logger getLogger() {
         return getPlugin().getLogger();
     }
@@ -52,6 +56,7 @@ public interface DivConfig {
      * @return Divisions Configuration
      * @since 1.0.0
      */
+    @NotNull
     static DivConfig getConfiguration() { return (DivConfig) getPlugin(); }
 
     /**
@@ -71,6 +76,7 @@ public interface DivConfig {
      * @return Division Directory
      * @since 1.0.0
      */
+    @NotNull
     static File getDivisionsDirectory() {
         return new File(getDataFolder(), "divisions");
     }
