@@ -9,14 +9,26 @@ import java.util.Map;
 
 public interface DivInventory extends Inventory {
 
-    @NotNull
-    String getIdentifier();
-
     @Override
     @NotNull
     default String getTitle() {
         return getAttribute("_name", String.class);
     }
+
+    default boolean isCancelled() {
+        return getAttribute("_cancelled", Boolean.class);
+    }
+
+    default void setCancelled(boolean cancelled) {
+        setAttribute("_cancelled", cancelled);
+    }
+
+    default void setCancelled() {
+        setCancelled(true);
+    }
+
+    @NotNull
+    String getIdentifier();
 
     @Unmodifiable
     @NotNull
