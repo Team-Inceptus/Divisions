@@ -54,8 +54,8 @@
     <modules>
         <module>plugin</module>
         <module>api</module>
+        <module>abstract</module>
 
-        <module>nms/abstract</module>
         <module>nms/1_13_R1</module>
         <module>nms/1_13_R2</module>
         <module>nms/1_14_R1</module>
@@ -93,6 +93,11 @@
                 <updatePolicy>never</updatePolicy>
             </snapshots>
         </repository>
+        <repository>
+            <id>jitpack</id>
+            <name>JitPack</name>
+            <url>https://jitpack.io</url>
+        </repository>
     </repositories>
 
     <build>
@@ -126,6 +131,16 @@
                                     </excludes>
                                 </filter>
                             </filters>
+                            <relocations>
+                                <relocation>
+                                    <pattern>revxrsal.commands</pattern>
+                                    <shadedPattern>us.teaminceptus.shaded.lamp</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.bstats</pattern>
+                                    <shadedPattern>us.teaminceptus.shaded.bstats</shadedPattern>
+                                </relocation>
+                            </relocations>
                         </configuration>
                     </execution>
                 </executions>
