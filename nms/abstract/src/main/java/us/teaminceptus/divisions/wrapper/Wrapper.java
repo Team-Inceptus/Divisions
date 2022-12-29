@@ -1,9 +1,11 @@
 package us.teaminceptus.divisions.wrapper;
 
 import org.bukkit.Bukkit;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import us.teaminceptus.divisions.api.DivConfig;
+import us.teaminceptus.divisions.wrapper.nbt.NBTWrapper;
 
 import java.util.Arrays;
 import java.util.List;
@@ -47,8 +49,14 @@ public interface Wrapper {
         return null;
     }
 
+    static String get(String key) {
+        return DivConfig.getConfiguration().get(key);
+    }
+
     // Wrapper Implementation
 
     DivInventory createInventory(@NotNull String identifier, int size, @NotNull String title);
+
+    NBTWrapper createNBTWrapper(@NotNull ItemStack item);
 
 }
