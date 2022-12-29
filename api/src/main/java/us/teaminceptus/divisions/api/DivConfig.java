@@ -5,6 +5,7 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
+import java.util.Locale;
 import java.util.logging.Logger;
 
 /**
@@ -104,5 +105,14 @@ public interface DivConfig {
      * @since 1.0.0
      */
     String getLanguage();
+
+    /**
+     * Fetches the Locale based on {@link #getLanguage()}.
+     * @return Current Locale
+     * @since 1.0.0
+     */
+    default Locale getLocale() {
+        return new Locale(getLanguage());
+    }
 
 }
