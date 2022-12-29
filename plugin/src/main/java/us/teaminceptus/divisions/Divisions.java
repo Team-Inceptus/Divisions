@@ -1,10 +1,16 @@
 package us.teaminceptus.divisions;
 
+import org.bstats.bukkit.Metrics;
+import org.bstats.charts.SimplePie;
+import org.bstats.charts.SingleLineChart;
 import org.bukkit.Bukkit;
-import us.teaminceptus.divisions.api.DivConfig;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
+import us.teaminceptus.divisions.api.DivConfig;
+import us.teaminceptus.divisions.api.division.Division;
+import us.teaminceptus.divisions.events.DivInventoryManager;
+import us.teaminceptus.divisions.util.inventory.ItemBuilder;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,17 +45,37 @@ public final class Divisions extends JavaPlugin implements DivConfig {
         return true;
     }
 
+    private static final int BSTATS_ID = 17230;
+
+    private void loadItems() {
+        ItemBuilder.loadItems();
+    }
+
+    private void loadClasses() {
+        new DivCommands(this);
+
+        new DivInventoryManager(this);
+    }
+
     @Override
     public void onEnable() {
         if (!checkCompatible()) return;
-
         LOGGER = getLogger();
+
         saveDefaultConfig();
-
-
-
-        getLogger().info("Loading Files...");
         config = getConfig();
+        Division.getDivisions(); // Verify that the divisions are valid
+        getLogger().info("Loading Files...");
+
+        loadItems();
+        loadClasses();
+        getLogger().info("Loaded Classes...");
+
+        Metrics m = new Metrics(this, BSTATS_ID);
+        m.addCustomChart(new SimplePie("language", getLocale()::getDisplayLanguage));
+        m.addCustomChart(new SingleLineChart("division_count", Division.getDivisions()::size));
+
+        getLogger().info("Loaded Add-ons...");
 
         getLogger().info("Done!");
     }
