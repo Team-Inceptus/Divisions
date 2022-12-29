@@ -3,6 +3,7 @@ package us.teaminceptus.divisions.util.inventory;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import us.teaminceptus.divisions.wrapper.DivInventory;
+import us.teaminceptus.divisions.wrapper.Wrapper;
 
 public final class Generator {
 

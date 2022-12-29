@@ -6,6 +6,7 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
+import us.teaminceptus.divisions.wrapper.Wrapper;
 import us.teaminceptus.divisions.wrapper.nbt.NBTWrapper;
 
 import java.util.Arrays;
