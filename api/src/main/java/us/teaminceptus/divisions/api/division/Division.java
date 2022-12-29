@@ -9,6 +9,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Unmodifiable;
 import us.teaminceptus.divisions.api.DivConfig;
 
 import java.io.*;
@@ -31,9 +32,14 @@ public final class Division {
     private String name;
     private Location home = null;
     private double experience = 0.0;
+    private String prefix = null;
+    private String tagline = "";
 
     private final Map<DivisionAchievement, Integer> achievements = new EnumMap<>(DivisionAchievement.class);
+
     private final Set<OfflinePlayer> members = new HashSet<>();
+
+    private final Map<SocialMedia, String> socialMedia = new EnumMap<>(SocialMedia.class);
 
     {
         for (DivisionAchievement value : DivisionAchievement.values()) achievements.putIfAbsent(value, 0);
@@ -144,8 +150,44 @@ public final class Division {
      * @since 1.0.0
      */
     @NotNull
+    @Unmodifiable
     public Set<OfflinePlayer> getMembers() {
         return ImmutableSet.copyOf(members);
+    }
+
+    /**
+     * Adds a member to this Division.
+     * @param player Player to add
+     * @since 1.0.0
+     * @throws IllegalArgumentException if player is null
+     * @throws IllegalStateException if player is already a member of any division
+     */
+    public void addMember(@NotNull OfflinePlayer player) throws IllegalArgumentException, IllegalStateException {
+        if (player == null) throw new IllegalArgumentException("Player cannot be null");
+        if (members.contains(player) || isInDivision(player)) throw new IllegalStateException("Player is already a member of a division");
+
+        members.add(player);
+        save();
+    }
+
+    /**
+     * Whether this OfflinePlayer is currently a member of this Division.
+     * @param player Player to check
+     * @return true if member, false otherwise
+     */
+    public boolean isMember(@NotNull OfflinePlayer player) {
+        return members.contains(player);
+    }
+
+    /**
+     * <p>Adds members to this Division.</p>
+     * <p>This method will automatically sort through the Iterable to only add players that are not members.</p>
+     * @param players Players to add
+     * @throws IllegalArgumentException if iterable is null
+     */
+    public void addMembers(@NotNull Iterable<? extends OfflinePlayer> players) throws IllegalArgumentException {
+        if (players == null) throw new IllegalArgumentException("Players cannot be null");
+        for (OfflinePlayer player : players) if (!isInDivision(player)) addMember(player);
     }
 
     /**
@@ -153,14 +195,156 @@ public final class Division {
      * @param achievement DivisionAchievement to use
      * @return Level of Achievement
      * @since 1.0.0
+     * @throws IllegalArgumentException if achievement is null
      */
-    public int getAchievementLevel(@NotNull DivisionAchievement achievement) {
+    public int getAchievementLevel(@NotNull DivisionAchievement achievement) throws IllegalArgumentException {
         if (achievement == null) throw new IllegalArgumentException("Achievement cannot be null");
-
         return achievements.getOrDefault(achievement, 0);
     }
 
+    /**
+     * Sets the level of a DivisionAchievement.
+     * @param achievement DivisionAchievement to use
+     * @param value Level of Achievement
+     * @since 1.0.0
+     * @throws IllegalArgumentException if achievement is null or value is negative
+     */
+    public void setAchievementLevel(@NotNull DivisionAchievement achievement, int value) throws IllegalArgumentException {
+        if (achievement == null) throw new IllegalArgumentException("Achievement cannot be null");
+        if (value < 0) throw new IllegalArgumentException("Value cannot be negative");
+
+        achievements.put(achievement, value);
+        save();
+    }
+
+    /**
+     * Resets this Division's Achievement Level, setting it to 0.
+     * @param achievement DivisionAchievement to use
+     * @since 1.0.0
+     * @throws IllegalArgumentException if achievement is null
+     */
+    public void resetAchievementLevel(@NotNull DivisionAchievement achievement) throws IllegalArgumentException {
+        setAchievementLevel(achievement, 0);
+    }
+
+    /**
+     * Fetches the social media link for the given SocialMedia from this Division.
+     * @param media SocialMedia to use
+     * @return Social Media Link
+     * @since 1.0.0
+     * @throws IllegalArgumentException if media is null
+     */
+    @NotNull
+    public String getSocialMedia(@NotNull SocialMedia media) throws IllegalArgumentException {
+        if (media == null) throw new IllegalArgumentException("Social Media cannot be null");
+
+        return socialMedia.getOrDefault(media, "");
+    }
+
+    /**
+     * Sets the social media link for the given SocialMedia from this Division.
+     * @param media SocialMedia to use
+     * @param link Social Media Link
+     * @since 1.0.0
+     * @throws IllegalArgumentException if media is null, or link is invalid for this SocialMedia
+     */
+    public void setSocialMedia(@NotNull SocialMedia media, @Nullable String link) throws IllegalArgumentException {
+        if (media == null) throw new IllegalArgumentException("Social Media cannot be null");
+        if (!media.isValidLink(link)) throw new IllegalArgumentException("Invalid Link for SocialMedia " + media.name());
+
+        socialMedia.put(media, link);
+        save();
+    }
+
+    /**
+     * Resets the social media link for the given SocialMedia from this Division.
+     * @param media SocialMedia to use
+     * @since 1.0.0
+     * @throws IllegalArgumentException if media is null
+     */
+    public void removeSocialMedia(@NotNull SocialMedia media) throws IllegalArgumentException {
+        setSocialMedia(media, null);
+    }
+
+    /**
+     * Fetches the experience amount of this Division.
+     * @return Division Experience
+     * @since 1.0.0
+     */
+    public double getExperience() {
+        return experience;
+    }
+
+    /**
+     * Sets the experience amount of this Division.
+     * @param experience Division Experience
+     * @since 1.0.0
+     */
+    public void setExperience(double experience) {
+        this.experience = experience;
+        save();
+    }
+
+    /**
+     * Fetches the prefix used by this Division.
+     * @return Division Prefix
+     * @since 1.0.0
+     */
+    @Nullable
+    public String getPrefix() {
+        return prefix;
+    }
+
+    /**
+     * Sets the prefix used by this Division.
+     * @param prefix Division Prefix
+     * @since 1.0.0
+     */
+    public void setPrefix(@Nullable String prefix) {
+        this.prefix = prefix;
+        save();
+    }
+
+    /**
+     * Resets the prefix used by this Division.
+     * @since 1.0.0
+     */
+    public void resetPrefix() {
+        setPrefix(null);
+    }
+
+    /**
+     * Fetches the tagline used by this Division.
+     * @return Division Tagline
+     * @since 1.0.0
+     */
+    @NotNull
+    public String getTagline() {
+        return tagline;
+    }
+
+    /**
+     * Sets the tagline used by this Division.
+     * @param tagline Division Tagline
+     * @throws IllegalArgumentException if tagline is null
+     */
+    public void setTagline(@NotNull String tagline) throws IllegalArgumentException {
+        if (tagline == null) throw new IllegalArgumentException("Tagline cannot be null");
+        this.tagline = tagline;
+        save();
+    }
+
+    /**
+     * Resets the tagline used by this division, setting it to being empty.
+     * @since 1.0.0
+     */
+    public void resetTagline() {
+        setTagline("");
+    }
+
     // Static Methods
+
+    private static final List<Division> DIVISION_CACHE = new ArrayList<>();
 
     /**
      * Fetches an immutable list of all divisions.
@@ -168,8 +352,10 @@ public final class Division {
      * @throws IllegalStateException if one or more divisions is invalid
      * @since 1.0.0
      */
+    @Unmodifiable
     @NotNull
     public static List<Division> getDivisions() throws IllegalStateException {
+        if (!DIVISION_CACHE.isEmpty()) return DIVISION_CACHE;
         List<Division> divisions = new ArrayList<>();
 
         for (File f : DivConfig.getDivisionsDirectory().listFiles()) {
@@ -189,17 +375,20 @@ public final class Division {
             divisions.add(d);
         }
 
+        DIVISION_CACHE.addAll(divisions);
+
         return ImmutableList.copyOf(divisions);
     }
 
     /**
      * Fetches a Division by its name.
      * @param name Division Name
-     * @return Division
+     * @return Division found, or null if not found
      * @since 1.0.0
+     * @throws IllegalArgumentException if name is null
      */
     @Nullable
-    public static Division byName(@NotNull String name) {
+    public static Division byName(@NotNull String name) throws IllegalArgumentException {
         if (name == null) throw new IllegalArgumentException("name cannot be null");
         return getDivisions()
                 .stream()
@@ -211,11 +400,12 @@ public final class Division {
     /**
      * Fetches a Division by its unique identifier.
      * @param id Division ID
-     * @return Division
+     * @return Division found, or null if not found
      * @since 1.0.0
+     * @throws IllegalArgumentException if id is null
      */
     @Nullable
-    public static Division byId(@NotNull UUID id) {
+    public static Division byId(@NotNull UUID id) throws IllegalArgumentException {
         if (id == null) throw new IllegalArgumentException("id cannot be null");
         return getDivisions()
                 .stream()
@@ -227,11 +417,12 @@ public final class Division {
     /**
      * Fetches a Division by its owner.
      * @param owner Division Owner
-     * @return Division
+     * @return Division found, or null if not found
      * @since 1.0.0
+     * @throws IllegalArgumentException if owner is null
      */
     @Nullable
-    public static Division byOwner(@NotNull OfflinePlayer owner) {
+    public static Division byOwner(@NotNull OfflinePlayer owner) throws IllegalArgumentException {
         if (owner == null) throw new IllegalArgumentException("owner cannot be null");
         return getDivisions()
                 .stream()
@@ -244,13 +435,136 @@ public final class Division {
      * Deletes a Division.
      * @param d Division to delete
      * @since 1.0.0
+     * @throws IllegalArgumentException if division is null
      */
-    public static void removeDivision(@NotNull Division d) {
+    public static void removeDivision(@NotNull Division d) throws IllegalArgumentException {
         if (d == null) throw new IllegalArgumentException("Division cannot be null");
 
         File folder = d.getFolder();
         for (File f : folder.listFiles()) f.delete();
         folder.delete();
+
+        DIVISION_CACHE.clear();
+    }
+
+    /**
+     * Determines whether a player is in any division.
+     * @param p Player to check
+     * @return true if in a division, false otherwise
+     * @throws IllegalArgumentException if player is null
+     */
+    public static boolean isInDivision(@NotNull OfflinePlayer p) throws IllegalArgumentException {
+        if (p == null) throw new IllegalArgumentException("Player cannot be null");
+        return getDivisions()
+                .stream()
+                .anyMatch(d -> d.getMembers().contains(p));
+    }
+
+    // Builder
+
+    /**
+     * Fetches the Divisions Builder.
+     * @return Divisions Builder
+     * @since 1.0.0
+     */
+    @NotNull
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
+     * The Main class used in the creation of a Division.
+     * @since 1.0.0
+     */
+    public static final class Builder {
+
+        String name;
+        String tagline;
+        String prefix;
+        OfflinePlayer owner;
+
+        final Map<SocialMedia, String> socialMedia = new HashMap<>();
+
+        private Builder() {}
+
+        /**
+         * Sets the name of the Division.
+         * @param name Division Name
+         * @return this class, for chaining
+         * @since 1.0.0
+         * @throws IllegalArgumentException if name is null
+         */
+        @NotNull
+        public Builder setName(@NotNull String name) throws IllegalArgumentException {
+            if (name == null) throw new IllegalArgumentException("Name cannot be null");
+            this.name = name;
+            return this;
+        }
+
+        /**
+         * Sets the tagline of the Division.
+         * @param tagline Division Tagline
+         * @return this class, for chaining
+         * @since 1.0.0
+         */
+        @NotNull
+        public Builder setTagline(@Nullable String tagline) {
+            this.tagline = tagline == null ? "" : tagline;
+            return this;
+        }
+
+        /**
+         * Sets the prefix of the Division.
+         * @param prefix Division Prefix
+         * @return this class, for chaining
+         * @since 1.0.0
+         */
+        @NotNull
+        public Builder setPrefix(@Nullable String prefix) {
+            this.prefix = prefix;
+            return this;
+        }
+
+        /**
+         * Sets the owner of the Division.
+         * @param owner Division Owner
+         * @return this class, for chaining
+         * @since 1.0.0
+         * @throws IllegalArgumentException if owner is null
+         */
+        @NotNull
+        public Builder setOwner(@NotNull OfflinePlayer owner) throws IllegalArgumentException {
+            if (owner == null) throw new IllegalArgumentException("Owner cannot be null");
+            this.owner = owner;
+            return this;
+        }
+
+        /**
+         * Sets a social media link for the Division.
+         * @param media Social Media
+         * @param link Link to Social Media
+         * @return this class, for chaining
+         * @since 1.0.0
+         * @throws IllegalArgumentException if media is null, or link is invalid for this media
+         */
+        @NotNull
+        public Builder setSocialMedia(@NotNull SocialMedia media, @Nullable String link) throws IllegalArgumentException {
+            if (media == null) throw new IllegalArgumentException("Media cannot be null");
+            if (!media.isValidLink(link)) throw new IllegalArgumentException("Invalid link for " + media.name());
+            socialMedia.put(media, link);
+            return this;
+        }
+
+        /**
+         * Builds this Division.
+         * @return Division
+         */
+        @NotNull
+        public Division build() {
+            DIVISION_CACHE.clear();
+            return null;
+        }
+
     }
 
     // Writing & Reading
@@ -313,8 +627,16 @@ public final class Division {
         oConfig.set("name", this.name);
         oConfig.set("home", this.home);
         oConfig.set("experience", this.experience);
-
+        oConfig.set("prefix", this.prefix);
+        oConfig.set("tagline", this.tagline);
         oConfig.save(other);
+
+        File socials = new File(folder, "socials.dat");
+        if (!socials.exists()) socials.createNewFile();
+
+        ObjectOutputStream socialsOs = new ObjectOutputStream(Files.newOutputStream(socials.toPath()));
+        socialsOs.writeObject(this.socialMedia);
+        socialsOs.close();
     }
 
     @SuppressWarnings("unchecked")
@@ -367,6 +689,17 @@ public final class Division {
         d.name = oConfig.getString("name");
         d.home = (Location) oConfig.get("home");
         d.experience = oConfig.getDouble("experience", 0);
+        d.prefix = oConfig.getString("prefix");
+        d.tagline = oConfig.getString("tagline", "");
+
+        File socials = new File(folder, "socials.dat");
+        if (!socials.exists()) throw new IllegalStateException("Could not find: socials.dat");
+
+        ObjectInputStream socialsIs = new ObjectInputStream(Files.newInputStream(socials.toPath()));
+        Map<SocialMedia, String> socialsMap = (Map<SocialMedia, String>) socialsIs.readObject();
+        socialsIs.close();
+
+        d.socialMedia.putAll(socialsMap);
 
         return d;
     }
