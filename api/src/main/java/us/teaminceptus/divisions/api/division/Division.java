@@ -3,17 +3,22 @@ package us.teaminceptus.divisions.api.division;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
 import us.teaminceptus.divisions.api.DivConfig;
+import us.teaminceptus.divisions.api.division.logs.AuditAction;
+import us.teaminceptus.divisions.api.division.logs.AuditLogEntry;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -22,6 +27,16 @@ import java.util.stream.Collectors;
  * @since 1.0.0
  */
 public final class Division {
+
+    // Constants
+
+    /**
+     * The maximum amount of players a Division can have.
+     * @since 1.0.0
+     */
+    public static final int MAX_PLAYERS = 1000;
+
+    // Fields
 
     private final File folder;
 
@@ -34,6 +49,9 @@ public final class Division {
     private double experience = 0.0;
     private String prefix = null;
     private String tagline = "";
+
+    private final List<String> messageLog = new ArrayList<>();
+    private final Map<AuditAction, AuditLogEntry> auditLog = new HashMap<>();
 
     private final Map<DivisionAchievement, Integer> achievements = new EnumMap<>(DivisionAchievement.class);
 
@@ -156,15 +174,30 @@ public final class Division {
     }
 
     /**
+     * Fetches an immutable set of this Division's online members.
+     * @return Online Division Members
+     * @since 1.0.0
+     */
+    @NotNull
+    @Unmodifiable
+    public Set<Player> getOnlineMembers() {
+        return members.stream()
+                .filter(OfflinePlayer::isOnline)
+                .map(OfflinePlayer::getPlayer)
+                .collect(Collectors.collectingAndThen(Collectors.toSet(), ImmutableSet::copyOf));
+    }
+
+    /**
      * Adds a member to this Division.
      * @param player Player to add
      * @since 1.0.0
      * @throws IllegalArgumentException if player is null
-     * @throws IllegalStateException if player is already a member of any division
+     * @throws IllegalStateException if player is already a member of any division, or division is full
      */
     public void addMember(@NotNull OfflinePlayer player) throws IllegalArgumentException, IllegalStateException {
         if (player == null) throw new IllegalArgumentException("Player cannot be null");
         if (members.contains(player) || isInDivision(player)) throw new IllegalStateException("Player is already a member of a division");
+        if (members.size() >= MAX_PLAYERS) throw new IllegalStateException("Division is full");
 
         members.add(player);
         save();
@@ -184,9 +217,12 @@ public final class Division {
      * <p>This method will automatically sort through the Iterable to only add players that are not members.</p>
      * @param players Players to add
      * @throws IllegalArgumentException if iterable is null
+     * @throws IllegalStateException if division is full
      */
-    public void addMembers(@NotNull Iterable<? extends OfflinePlayer> players) throws IllegalArgumentException {
+    public void addMembers(@NotNull Iterable<? extends OfflinePlayer> players) throws IllegalArgumentException, IllegalStateException {
         if (players == null) throw new IllegalArgumentException("Players cannot be null");
+        if (members.size() >= MAX_PLAYERS) throw new IllegalStateException("Division is full");
+
         for (OfflinePlayer player : players) if (!isInDivision(player)) addMember(player);
     }
 
@@ -286,6 +322,25 @@ public final class Division {
     }
 
     /**
+     * Fetches the Division's current level.
+     * @return Division Level
+     * @since 1.0.0
+     */
+    public int getLevel() {
+        return toLevel(experience);
+    }
+
+    /**
+     * Sets the Division's current level.
+     * @param level Division Level
+     * @since 1.0.0
+     */
+    public void setLevel(int level) {
+        this.experience = toExperience(level);
+        save();
+    }
+
+    /**
      * Fetches the prefix used by this Division.
      * @return Division Prefix
      * @since 1.0.0
@@ -340,6 +395,39 @@ public final class Division {
      */
     public void resetTagline() {
         setTagline("");
+    }
+
+    /**
+     * Fetches an immutable list of the message log for this Division.
+     * @return Message Log
+     * @since 1.0.0
+     */
+    @Unmodifiable
+    @NotNull
+    public List<String> getMessageLog() {
+        return ImmutableList.copyOf(messageLog);
+    }
+
+    /**
+     * Fetches the prefix used in Division-only chat.
+     * @return Division Chat Prefix
+     * @since 1.0.0
+     */
+    public String getChatPrefix() {
+        return ChatColor.GREEN + name + ChatColor.WHITE + " > " + ChatColor.RESET;
+    }
+
+    /**
+     * Broadcasts a message to all members of this Division.
+     * @param message Message to broadcast
+     * @throws IllegalArgumentException if message is null
+     */
+    public void broadcastMessage(@NotNull String message) throws IllegalArgumentException {
+        if (message == null) throw new IllegalArgumentException("Message cannot be null");
+        for (Player player : getOnlineMembers()) player.sendMessage(getChatPrefix() + message);
+
+        String logPrefix = new SimpleDateFormat("[HH:mm:ss] ").format(new Date());
+        messageLog.add(logPrefix + message);
     }
 
     // Static Methods
@@ -460,6 +548,30 @@ public final class Division {
                 .anyMatch(d -> d.getMembers().contains(p));
     }
 
+    /**
+     * Converts a Division's experience amount to their Division Level.
+     * @param experience Division's Experience
+     * @return Division Level
+     * @since 1.0.0
+     */
+    public static int toLevel(double experience) {
+        if (experience < 0) return 0;
+
+        int level = 0;
+        while (toExperience(level) < experience) level++;
+        return level;
+    }
+
+    /**
+     * Converts a Division's level to the minimum required experience needed to get to that level.
+     * @param level Division Level
+     * @return Minimum Division Experience
+     */
+    public static double toExperience(int level) {
+        if (level < 0) return 0;
+        return Math.floor(Math.pow(level, 2.2 + (level / 3D)) + 1000 * level);
+    }
+
     // Builder
 
     /**
@@ -568,6 +680,37 @@ public final class Division {
     }
 
     // Writing & Reading
+
+    /**
+     * <p>Saves the logs for this Division.</p>
+     * <p>This method is automatically called every 24 hours from the plugin starting.</p>
+     */
+    public void saveLogs() {
+        try {
+            writeLogs();
+        } catch (IOException e) {
+            DivConfig.print(e);
+        }
+
+        messageLog.clear();
+    }
+
+    private void writeLogs() throws IOException {
+        File chatF = new File(folder, "logs/chat");
+        if (!chatF.exists()) chatF.mkdirs();
+
+        File today = new File(chatF, new SimpleDateFormat("yyyy-MM-dd").format(new Date()) + ".log");
+        if (!today.exists()) today.createNewFile();
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(today, true))) {
+            for (String s : messageLog) {
+                writer.write(s);
+                writer.newLine();
+            }
+
+            writer.flush();
+        }
+    }
 
     /**
      * <p>Saves this Division to the file system.</p>
