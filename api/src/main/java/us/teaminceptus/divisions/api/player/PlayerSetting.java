@@ -15,6 +15,7 @@ public final class PlayerSetting<T> {
 
     /**
      * Whether the player receives plugin notifications.
+     * @since 1.0.0
      */
     public static final PlayerSetting<Boolean> NOTIFICATIONS =
             new PlayerSetting<>("settings.notifications", boolean.class, true);
@@ -41,8 +42,6 @@ public final class PlayerSetting<T> {
     private static <T extends Enum<T>> PlayerSetting<T> ofEnum(String displayKey, T def) {
         return new PlayerSetting<>(displayKey, (Class<T>) def.getClass(), def, (T[]) def.getClass().getEnumConstants());
     }
-
-
 
     /**
      * Fetches the display name of this PlayerSetting.
