@@ -6,14 +6,20 @@ import org.bstats.charts.SingleLineChart;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.serialization.ConfigurationSerializable;
+import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitRunnable;
 import us.teaminceptus.divisions.api.DivConfig;
 import us.teaminceptus.divisions.api.division.Division;
+import us.teaminceptus.divisions.api.division.logs.AuditLogEntry;
 import us.teaminceptus.divisions.events.DivInventoryManager;
 import us.teaminceptus.divisions.util.inventory.ItemBuilder;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 import java.util.logging.Logger;
 
@@ -55,7 +61,26 @@ public final class Divisions extends JavaPlugin implements DivConfig {
         new DivCommands(this);
 
         new DivInventoryManager(this);
+
+        SERIALIZABLE.forEach(ConfigurationSerialization::registerClass);
     }
+
+    private static final List<Class<? extends ConfigurationSerializable>> SERIALIZABLE = Collections.singletonList(
+            AuditLogEntry.class
+    );
+
+    // Tasks
+
+    private static final Runnable DAILY_ASYNC = () -> Division.getDivisions().forEach(Division::saveLogs);
+
+    private static final BukkitRunnable DAILY_ASYNC_RUNNABLE = new BukkitRunnable() {
+        @Override
+        public void run() {
+            DAILY_ASYNC.run();
+        }
+    };
+
+    // onEnable & onDisable
 
     @Override
     public void onEnable() {
@@ -71,11 +96,26 @@ public final class Divisions extends JavaPlugin implements DivConfig {
         loadClasses();
         getLogger().info("Loaded Classes...");
 
+        DAILY_ASYNC_RUNNABLE.runTaskTimerAsynchronously(this, 1728000L, 1728000L);
+
+        getLogger().info("Loaded Tasks...");
+
         Metrics m = new Metrics(this, BSTATS_ID);
         m.addCustomChart(new SimplePie("language", getLocale()::getDisplayLanguage));
         m.addCustomChart(new SingleLineChart("division_count", Division.getDivisions()::size));
 
         getLogger().info("Loaded Add-ons...");
+
+        getLogger().info("Done!");
+    }
+
+    @Override
+    public void onDisable() {
+        SERIALIZABLE.forEach(ConfigurationSerialization::unregisterClass);
+        getLogger().info("Unregistered Classes...");
+
+        Division.getDivisions().forEach(Division::saveLogs);
+        getLogger().info("Saved Files...");
 
         getLogger().info("Done!");
     }
