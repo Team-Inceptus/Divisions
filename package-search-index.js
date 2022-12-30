@@ -1,1 +1,1 @@
-packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"us.teaminceptus.divisions"},{"l":"us.teaminceptus.divisions.api"},{"l":"us.teaminceptus.divisions.api.division"},{"l":"us.teaminceptus.divisions.api.player"}];updateSearchResults();
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"us.teaminceptus.divisions"},{"l":"us.teaminceptus.divisions.api"},{"l":"us.teaminceptus.divisions.api.division"},{"l":"us.teaminceptus.divisions.api.division.logs"},{"l":"us.teaminceptus.divisions.api.player"}];updateSearchResults();
