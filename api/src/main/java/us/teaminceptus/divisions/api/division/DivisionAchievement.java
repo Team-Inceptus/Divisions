@@ -17,10 +17,10 @@ public enum DivisionAchievement {
     POPULATION_GROWTH("population_growth", 4),
 
     /**
-     * Represents the Achievement for having 10K, 100K, 1M, 5M, and 15M Experience.
+     * Represents the Achievement for having 100K, 1M, 10M, 500M, 3B, and 500B Experience.
      * @since 1.0.0
      */
-    EXPERIENCE_COLLECTOR("experience_collector", 5),
+    EXPERIENCE_COLLECTOR("experience_collector", 6),
     ;
 
     private final String key;
