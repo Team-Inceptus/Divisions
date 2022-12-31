@@ -6,11 +6,12 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
-import us.teaminceptus.divisions.wrapper.Wrapper;
 import us.teaminceptus.divisions.wrapper.nbt.NBTWrapper;
 
 import java.util.Arrays;
 import java.util.function.Consumer;
+
+import static us.teaminceptus.divisions.wrapper.Wrapper.get;
 
 public final class ItemBuilder {
 
@@ -22,8 +23,8 @@ public final class ItemBuilder {
         if (loaded) throw new IllegalArgumentException("Items already loaded!");
 
         SAVE = ItemBuilder.of(Material.LIME_WOOL)
-                .name(ChatColor.GREEN + Wrapper.get("constants.save"))
-                .nbt(nbt -> nbt.set("item", "save"))
+                .id("save")
+                .name(ChatColor.GREEN + get("constants.save"))
                 .build();
 
         GUI_BACKGROUND = ItemBuilder.of(Material.BLACK_STAINED_GLASS_PANE)
@@ -31,11 +32,17 @@ public final class ItemBuilder {
                 .name(" ")
                 .build();
 
+        CONFIRM = ItemBuilder.of(Material.LIME_WOOL)
+                .id("confirm")
+                .name(ChatColor.GREEN + get("constants.confirm"))
+                .build();
+
         loaded = true;
     }
 
     public static ItemStack GUI_BACKGROUND;
     public static ItemStack SAVE;
+    public static ItemStack CONFIRM;
 
 
     private ItemBuilder(ItemStack item) {
