@@ -2,4 +2,7 @@ us.teaminceptus.divisions
 us.teaminceptus.divisions.api
 us.teaminceptus.divisions.api.division
 us.teaminceptus.divisions.api.division.logs
+us.teaminceptus.divisions.api.events
+us.teaminceptus.divisions.api.events.division
+us.teaminceptus.divisions.api.events.player
 us.teaminceptus.divisions.api.player
