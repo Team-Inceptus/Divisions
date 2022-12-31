@@ -37,7 +37,18 @@ public final class DivInventoryManager implements Listener {
             .build();
 
     private static final Map<String, BiConsumer<DivInventory, InventoryClickEvent>> CLICK_INVENTORY = ImmutableMap.<String, BiConsumer<DivInventory, InventoryClickEvent>>builder()
+            .put("confirm_inv", (inv, e) -> {
+                ItemStack item = e.getCurrentItem();
+                NBTWrapper nbt = of(item);
 
+                Runnable confirmR = inv.getAttribute("confirm_action", Runnable.class);
+                Runnable cancelR = inv.getAttribute("cancel_action", Runnable.class);
+
+                switch (nbt.getString("item")) {
+                    case "confirm": confirmR.run(); break;
+                    case "cancel": cancelR.run(); break;
+                }
+            })
             .build();
 
     // Logic
