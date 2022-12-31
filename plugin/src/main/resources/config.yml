@@ -13,3 +13,10 @@
 # - ja (Japanese / 日本語)
 # - zh (Chinese / 中文)
 language: en
+
+# Configuration Section for Divisions
+divisions:
+
+  # Maximum Players in a Division.
+  # Internal Maximum is 1,000, must be greater than 10.
+  max-players: 1000
