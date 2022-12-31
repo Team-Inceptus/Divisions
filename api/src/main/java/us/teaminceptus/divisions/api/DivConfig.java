@@ -58,7 +58,10 @@ public interface DivConfig {
      * @since 1.0.0
      */
     @NotNull
-    static DivConfig getConfiguration() { return (DivConfig) getPlugin(); }
+    static DivConfig getConfiguration() {
+        if (Bukkit.getServer() == null) return new TestDivConfig();
+        return (DivConfig) getPlugin();
+    }
 
     /**
      * Prints a Throwable in the Plugin Namespace.
@@ -114,5 +117,12 @@ public interface DivConfig {
     default Locale getLocale() {
         return new Locale(getLanguage());
     }
+
+    /**
+     * Fetches the configuration's maximum division size.
+     * @return Maximum Division Size
+     * @since 1.0.0
+     */
+    int getMaxDivisionSize();
 
 }

@@ -9,7 +9,6 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitRunnable;
 import us.teaminceptus.divisions.api.DivConfig;
 import us.teaminceptus.divisions.api.division.Division;
 import us.teaminceptus.divisions.api.division.logs.AuditLogEntry;
@@ -69,17 +68,6 @@ public final class Divisions extends JavaPlugin implements DivConfig {
             AuditLogEntry.class
     );
 
-    // Tasks
-
-    private static final Runnable DAILY_ASYNC = () -> Division.getDivisions().forEach(Division::saveLogs);
-
-    private static final BukkitRunnable DAILY_ASYNC_RUNNABLE = new BukkitRunnable() {
-        @Override
-        public void run() {
-            DAILY_ASYNC.run();
-        }
-    };
-
     // onEnable & onDisable
 
     @Override
@@ -96,8 +84,6 @@ public final class Divisions extends JavaPlugin implements DivConfig {
         loadClasses();
         getLogger().info("Loaded Classes...");
 
-        DAILY_ASYNC_RUNNABLE.runTaskTimerAsynchronously(this, 1728000L, 1728000L);
-
         getLogger().info("Loaded Tasks...");
 
         Metrics m = new Metrics(this, BSTATS_ID);
@@ -113,9 +99,6 @@ public final class Divisions extends JavaPlugin implements DivConfig {
     public void onDisable() {
         SERIALIZABLE.forEach(ConfigurationSerialization::unregisterClass);
         getLogger().info("Unregistered Classes...");
-
-        Division.getDivisions().forEach(Division::saveLogs);
-        getLogger().info("Saved Files...");
 
         getLogger().info("Done!");
     }
@@ -148,6 +131,11 @@ public final class Divisions extends JavaPlugin implements DivConfig {
     @Override
     public String getLanguage() {
         return config.getString("language", "en");
+    }
+
+    @Override
+    public int getMaxDivisionSize() {
+        return Math.max(10, Math.min(config.getInt("divisions.max-players", Division.MAX_PLAYERS), Division.MAX_PLAYERS));
     }
 
 }
