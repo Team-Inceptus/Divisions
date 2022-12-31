@@ -1,6 +1,7 @@
 package us.teaminceptus.divisions.api.division;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -13,8 +14,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
 import us.teaminceptus.divisions.api.DivConfig;
-import us.teaminceptus.divisions.api.division.logs.AuditAction;
 import us.teaminceptus.divisions.api.division.logs.AuditLogEntry;
+import us.teaminceptus.divisions.api.events.division.DivisionBanEvent;
+import us.teaminceptus.divisions.api.events.division.DivisionCreateEvent;
+import us.teaminceptus.divisions.api.events.division.DivisionKickEvent;
+import us.teaminceptus.divisions.api.events.division.DivisionUnbanEvent;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -26,15 +30,24 @@ import java.util.stream.Collectors;
  * Represents a Division
  * @since 1.0.0
  */
+@SuppressWarnings("unchecked")
 public final class Division {
 
     // Constants
 
     /**
-     * The maximum amount of players a Division can have.
+     * The internal maximum amount of players a Division can have.
      * @since 1.0.0
      */
     public static final int MAX_PLAYERS = 1000;
+
+    /**
+     * The prefix used for communication in Divisions.
+     * @since 1.0.0
+     */
+    public static final String CHAT_PREFIX = ChatColor.DARK_GREEN
+            + DivConfig.getConfiguration().get("constants.division")
+            + ChatColor.WHITE + " > ";
 
     // Fields
 
@@ -50,12 +63,15 @@ public final class Division {
     private String prefix = null;
     private String tagline = "";
 
-    private final List<String> messageLog = new ArrayList<>();
-    private final Map<AuditAction, AuditLogEntry> auditLog = new HashMap<>();
+    private final Map<DivSetting<?>, Object> settings = new HashMap<>();
+
+    private final List<AuditLogEntry> auditLog = new ArrayList<>();
 
     private final Map<DivisionAchievement, Integer> achievements = new EnumMap<>(DivisionAchievement.class);
 
     private final Set<OfflinePlayer> members = new HashSet<>();
+
+    private final Set<UUID> banList = new HashSet<>();
 
     private final Map<SocialMedia, String> socialMedia = new EnumMap<>(SocialMedia.class);
 
@@ -63,14 +79,12 @@ public final class Division {
         for (DivisionAchievement value : DivisionAchievement.values()) achievements.putIfAbsent(value, 0);
     }
 
-    private Division(File folder, UUID id, long creationDate, OfflinePlayer owner, boolean save) {
+    private Division(File folder, UUID id, long creationDate, OfflinePlayer owner) {
         this.folder = folder;
 
         this.id = id;
         this.creationDate = creationDate;
         this.owner = owner;
-
-        if (save) save();
     }
 
     /**
@@ -108,6 +122,7 @@ public final class Division {
     /**
      * Fetches this Division's unique identifier.
      * @return Division ID
+     * @since 1.0.0
      */
     @NotNull
     public UUID getUniqueId() {
@@ -191,15 +206,26 @@ public final class Division {
      * Adds a member to this Division.
      * @param player Player to add
      * @since 1.0.0
-     * @throws IllegalArgumentException if player is null
-     * @throws IllegalStateException if player is already a member of any division, or division is full
+     * @throws IllegalArgumentException if player is null, banned, or is a member of another division
+     * @throws IllegalStateException if division is full
      */
     public void addMember(@NotNull OfflinePlayer player) throws IllegalArgumentException, IllegalStateException {
+        addMember(player, true);
+    }
+
+    private void addMember(@NotNull OfflinePlayer player, boolean save) {
         if (player == null) throw new IllegalArgumentException("Player cannot be null");
-        if (members.contains(player) || isInDivision(player)) throw new IllegalStateException("Player is already a member of a division");
-        if (members.size() >= MAX_PLAYERS) throw new IllegalStateException("Division is full");
+        if (members.contains(player) || isInDivision(player)) throw new IllegalArgumentException("Player is already a member of a division");
+        if (banList.contains(player.getUniqueId())) throw new IllegalArgumentException("Player is banned from this division");
+
+        if (members.size() >= DivConfig.getConfiguration().getMaxDivisionSize()) throw new IllegalStateException("Division is full");
 
         members.add(player);
+
+        AuditLogEntry entry = new AuditLogEntry(new Date(), AuditLogEntry.Action.MEMBER_JOINED, player);
+        auditLog.add(entry);
+        writeLog(entry);
+
         save();
     }
 
@@ -207,6 +233,7 @@ public final class Division {
      * Whether this OfflinePlayer is currently a member of this Division.
      * @param player Player to check
      * @return true if member, false otherwise
+     * @since 1.0.0
      */
     public boolean isMember(@NotNull OfflinePlayer player) {
         return members.contains(player);
@@ -214,16 +241,86 @@ public final class Division {
 
     /**
      * <p>Adds members to this Division.</p>
-     * <p>This method will automatically sort through the Iterable to only add players that are not members.</p>
+     * <p>This method will automatically sort through the Iterable to only add players that are not members and are not banned.</p>
      * @param players Players to add
+     * @since 1.0.0
      * @throws IllegalArgumentException if iterable is null
      * @throws IllegalStateException if division is full
      */
     public void addMembers(@NotNull Iterable<? extends OfflinePlayer> players) throws IllegalArgumentException, IllegalStateException {
         if (players == null) throw new IllegalArgumentException("Players cannot be null");
-        if (members.size() >= MAX_PLAYERS) throw new IllegalStateException("Division is full");
+        List<OfflinePlayer> toAdd = ImmutableList.copyOf(players)
+                .stream()
+                .filter(player -> !members.contains(player) && !banList.contains(player.getUniqueId()))
+                .collect(Collectors.toList());
 
-        for (OfflinePlayer player : players) if (!isInDivision(player)) addMember(player);
+        if (members.size() + toAdd.size() >= DivConfig.getConfiguration().getMaxDivisionSize()) throw new IllegalStateException("Division cannot support that many members (" + toAdd.size() + ")");
+
+        for (OfflinePlayer player : toAdd) addMember(player, false);
+        save();
+    }
+
+    /***
+     * Removes a member from this Division.
+     * @param player Player to remove
+     * @since 1.0.0
+     * @throws IllegalArgumentException if player is null
+     */
+    public void kickMember(@NotNull OfflinePlayer player) throws IllegalArgumentException {
+        kickMember(player, null);
+    }
+
+    /**
+     * Removes a member from this Division.
+     * @param player Player to remove
+     * @param initiator Optional Player that initiated the kick
+     * @since 1.0.0
+     * @throws IllegalArgumentException if player is null or not a member
+     */
+    public void kickMember(@NotNull OfflinePlayer player, @Nullable OfflinePlayer initiator) throws IllegalArgumentException {
+        kickMember(player, initiator, true);
+    }
+
+    private void kickMember(@NotNull OfflinePlayer player, @Nullable OfflinePlayer initiator, boolean save) {
+        if (player == null) throw new IllegalArgumentException("Player cannot be null");
+        if (!members.contains(player)) throw new IllegalArgumentException("Player is not a member of this division");
+
+        members.remove(player);
+
+        DivisionKickEvent event = new DivisionKickEvent(this, player, initiator);
+        Bukkit.getPluginManager().callEvent(event);
+
+        AuditLogEntry entry = new AuditLogEntry(new Date(), AuditLogEntry.Action.MEMBER_KICKED, player.getName(), event.getInitiator());
+        auditLog.add(entry);
+        writeLog(entry);
+
+        if (save) save();
+    }
+
+    /**
+     * <p>Removes members from this Division.</p>
+     * <p>This method will automatically sort through the Iterable to only remove players that are members.</p>
+     * @param players Players to remove
+     * @since 1.0.0
+     * @throws IllegalArgumentException if iterable is null
+     */
+    public void kickMembers(@NotNull Iterable<? extends OfflinePlayer> players) throws IllegalArgumentException{
+        kickMembers(players, null);
+    }
+
+    /**
+     * <p>Removes members from this Division.</p>
+     * <p>This method will automatically sort through the iterable and only kick members of the Divison.</p>
+     * @param players Players to remove
+     * @param initiator Optional Player that initiated the kick
+     * @since 1.0.0
+     * @throws IllegalArgumentException if iterable is null
+     */
+    public void kickMembers(@NotNull Iterable<? extends OfflinePlayer> players, @Nullable OfflinePlayer initiator) throws IllegalArgumentException {
+        if (players == null) throw new IllegalArgumentException("Players cannot be null");
+
+        for (OfflinePlayer player : players) if (isMember(player)) kickMember(player, initiator, false);
+        save();
     }
 
     /**
@@ -243,11 +340,11 @@ public final class Division {
      * @param achievement DivisionAchievement to use
      * @param value Level of Achievement
      * @since 1.0.0
-     * @throws IllegalArgumentException if achievement is null or value is negative
+     * @throws IllegalArgumentException if achievement is null or value is not between 0 and Achievement's Max Value
      */
     public void setAchievementLevel(@NotNull DivisionAchievement achievement, int value) throws IllegalArgumentException {
         if (achievement == null) throw new IllegalArgumentException("Achievement cannot be null");
-        if (value < 0) throw new IllegalArgumentException("Value cannot be negative");
+        if (value < 0 || value > achievement.getMaxLevel()) throw new IllegalArgumentException("Value cannot be negative or greater than max level");
 
         achievements.put(achievement, value);
         save();
@@ -315,10 +412,31 @@ public final class Division {
      * Sets the experience amount of this Division.
      * @param experience Division Experience
      * @since 1.0.0
+     * @throws IllegalArgumentException if experience is negative
      */
-    public void setExperience(double experience) {
+    public void setExperience(double experience) throws IllegalArgumentException {
+        if (experience < 0) throw new IllegalArgumentException("Experience cannot be negative");
         this.experience = experience;
         save();
+    }
+
+    /**
+     * Adds experience to this Division.
+     * @param experience Experience to add
+     * @since 1.0.0
+     */
+    public void addExpereince(double experience) {
+        setExperience(getExperience() + experience);
+    }
+
+    /**
+     * Removes experience from this Division.
+     * @param experience Experience to remove
+     * @since 1.0.0
+     * @throws IllegalArgumentException if removed amount turns the balance to negative
+     */
+    public void removeExperience(double experience) throws IllegalArgumentException {
+        setExperience(getExperience() - experience);
     }
 
     /**
@@ -334,8 +452,10 @@ public final class Division {
      * Sets the Division's current level.
      * @param level Division Level
      * @since 1.0.0
+     * @throws IllegalArgumentException if level is negative
      */
-    public void setLevel(int level) {
+    public void setLevel(int level) throws IllegalArgumentException {
+        if (level < 0) throw new IllegalArgumentException("Level cannot be negative");
         this.experience = toExperience(level);
         save();
     }
@@ -381,6 +501,7 @@ public final class Division {
     /**
      * Sets the tagline used by this Division.
      * @param tagline Division Tagline
+     * @since 1.0.0
      * @throws IllegalArgumentException if tagline is null
      */
     public void setTagline(@NotNull String tagline) throws IllegalArgumentException {
@@ -405,29 +526,299 @@ public final class Division {
     @Unmodifiable
     @NotNull
     public List<String> getMessageLog() {
-        return ImmutableList.copyOf(messageLog);
-    }
-
-    /**
-     * Fetches the prefix used in Division-only chat.
-     * @return Division Chat Prefix
-     * @since 1.0.0
-     */
-    public String getChatPrefix() {
-        return ChatColor.GREEN + name + ChatColor.WHITE + " > " + ChatColor.RESET;
+        return ImmutableList.copyOf(getLog("chat"));
     }
 
     /**
      * Broadcasts a message to all members of this Division.
      * @param message Message to broadcast
+     * @since 1.0.0
      * @throws IllegalArgumentException if message is null
      */
     public void broadcastMessage(@NotNull String message) throws IllegalArgumentException {
         if (message == null) throw new IllegalArgumentException("Message cannot be null");
-        for (Player player : getOnlineMembers()) player.sendMessage(getChatPrefix() + message);
+
+        for (Player player : getOnlineMembers()) player.sendMessage(CHAT_PREFIX + message);
 
         String logPrefix = new SimpleDateFormat("[HH:mm:ss] ").format(new Date());
-        messageLog.add(logPrefix + message);
+        writeLog("chat", logPrefix + message);
+    }
+
+    /**
+     * Fetches an immutable map of all of this Division's Achievements to their levels.
+     * @return Achievements
+     * @since 1.0.0
+     */
+    @NotNull
+    @Unmodifiable
+    public Map<DivisionAchievement, Integer> getAchievements() {
+        return ImmutableMap.copyOf(achievements);
+    }
+
+    /**
+     * Fetches an immutable list of the Audit Log Entries for this Division.
+     * @return Audit Log
+     * @since 1.0.0
+     */
+    @NotNull
+    @Unmodifiable
+    public List<AuditLogEntry> getAuditLog() {
+        return ImmutableList.copyOf(auditLog);
+    }
+
+    /**
+     * Fetches an immutable set of all of the players banned from this Division.
+     * @return Banned Players
+     * @since 1.0.0
+     */
+    @NotNull
+    @Unmodifiable
+    public Set<OfflinePlayer> getBanList() {
+        return banList.stream()
+                .map(Bukkit::getOfflinePlayer)
+                .collect(Collectors.collectingAndThen(Collectors.toSet(), ImmutableSet::copyOf));
+    }
+
+    /**
+     * Determines whether this Division has banned the given player.
+     * @param player Player to check
+     * @return true if banned, false otherwise
+     * @since 1.0.0
+     * @throws IllegalArgumentException if player is null
+     */
+    public boolean isBanned(@NotNull OfflinePlayer player) throws IllegalArgumentException {
+        if (player == null) throw new IllegalArgumentException("Player cannot be null");
+        return banList.contains(player.getUniqueId());
+    }
+
+    /**
+     * Bans the given player from this Division, kicking them if they are in the Division.
+     * @param uid UUID of Player to ban
+     * @since 1.0.0
+     * @throws IllegalArgumentException if uid is null
+     */
+    public void ban(@NotNull UUID uid) throws IllegalArgumentException {
+        ban(uid, null);
+    }
+
+    /**
+     * Bans the given player from this Division, kicking them if they are in the Division.
+     * @param uid UUID of Player to ban
+     * @param initiator Player who initiated the ban
+     * @since 1.0.0
+     * @throws IllegalArgumentException if uid is null
+     */
+    public void ban(@NotNull UUID uid, @Nullable OfflinePlayer initiator) throws IllegalArgumentException {
+        if (uid == null) throw new IllegalArgumentException("UUID cannot be null");
+
+        ban(Bukkit.getOfflinePlayer(uid), initiator);
+    }
+
+    /**
+     * Bans the given player from this Division, kicking them if they are in the Division.
+     * @param player Player to ban
+     * @since 1.0.0
+     * @throws IllegalArgumentException if player is null
+     */
+    public void ban(@NotNull OfflinePlayer player) throws IllegalArgumentException {
+        ban(player, null);
+    }
+
+    /**
+     * Bans the given player from this Division, kicking them if they are in the Division.
+     * @param player Player to ban
+     * @param initiator Optional Player who initiated the ban
+     * @since 1.0.0
+     * @throws IllegalArgumentException if player is null
+     */
+    public void ban(@NotNull OfflinePlayer player, @Nullable OfflinePlayer initiator) throws IllegalArgumentException {
+        ban(player, initiator, true);
+    }
+
+    private void ban(@NotNull OfflinePlayer player, @Nullable OfflinePlayer initiator, boolean save) {
+        if (player == null) throw new IllegalArgumentException("Player cannot be null");
+        if (isMember(player)) kickMember(player, initiator);
+
+        banList.add(player.getUniqueId());
+
+        DivisionBanEvent event = new DivisionBanEvent(this, player, initiator);
+        Bukkit.getPluginManager().callEvent(event);
+
+        AuditLogEntry entry = new AuditLogEntry(new Date(), AuditLogEntry.Action.PLAYER_BANNED, player.getName(), event.getInitiator());
+        auditLog.add(entry);
+        writeLog(entry);
+
+        if (save) save();
+    }
+
+    /**
+     * Bans an entire list of players from this Division, kicking them if they are in the Division.
+     * @param players Players to ban
+     * @since 1.0.0
+     * @throws IllegalArgumentException if iterable is null
+     */
+    public void ban(@NotNull Iterable<? extends OfflinePlayer> players) throws IllegalArgumentException {
+        ban(players, null);
+    }
+
+    /**
+     * Bans an iterable of players from this Division, kicking them if they are in the Division.
+     * @param players Players to ban
+     * @param initiator Optional Player who initiated the ban
+     * @since 1.0.0
+     * @throws IllegalArgumentException if iterable is null
+     */
+    public void ban(@NotNull Iterable<? extends OfflinePlayer> players, @Nullable OfflinePlayer initiator) throws IllegalArgumentException {
+        if (players == null) throw new IllegalArgumentException("Players cannot be null");
+
+        for (OfflinePlayer player : players) ban(player, initiator, false);
+        save();
+    }
+
+    /**
+     * Unbans the given player from this Division.
+     * @param uid UUID of Player to unban
+     * @since 1.0.0
+     * @throws IllegalArgumentException if uid is null or player is not banned
+     */
+    public void unban(@NotNull UUID uid) throws IllegalArgumentException {
+        unban(uid, null);
+    }
+
+    /**
+     * Unbans the given player from this Division.
+     * @param player Player to unban
+     * @since 1.0.0
+     * @throws IllegalArgumentException if player is null or not banned
+     */
+    public void unban(@NotNull OfflinePlayer player) throws IllegalArgumentException {
+        unban(player, null);
+    }
+
+    /**
+     * Unbans the given player from this Division.
+     * @param uid UUID of Player to unban
+     * @param initiator Optional Player who initiated the unban
+     * @since 1.0.0
+     * @throws IllegalArgumentException if uid is null or player is not banned
+     */
+    public void unban(@NotNull UUID uid, @Nullable OfflinePlayer initiator) throws IllegalArgumentException{
+        if (uid == null) throw new IllegalArgumentException("UUID cannot be null");
+
+        unban(Bukkit.getOfflinePlayer(uid), initiator);
+    }
+
+    /**
+     * Unbans the given player from this Division.
+     * @param player Player to unban
+     * @param initiator Optional Player who initiated the unban
+     * @since 1.0.0
+     * @throws IllegalArgumentException if player is null or not banned
+     */
+    public void unban(@NotNull OfflinePlayer player, @Nullable OfflinePlayer initiator) throws IllegalArgumentException {
+        unban(player, initiator, true);
+    }
+
+    private void unban(@NotNull OfflinePlayer player, @Nullable OfflinePlayer initiator, boolean save) {
+        if (player == null) throw new IllegalArgumentException("Player cannot be null");
+        if (!isBanned(player)) throw new IllegalArgumentException("Player is not banned");
+
+        banList.remove(player.getUniqueId());
+
+        DivisionUnbanEvent event = new DivisionUnbanEvent(this, player, initiator);
+        Bukkit.getPluginManager().callEvent(event);
+
+        AuditLogEntry entry = new AuditLogEntry(new Date(), AuditLogEntry.Action.PLAYER_UNBANNED, player.getName(), event.getInitiator());
+        auditLog.add(entry);
+        writeLog(entry);
+
+        if (save) save();
+    }
+
+    /**
+     * <p>Unbans am iterable of players from this Division.</p>
+     * <p>This method will automatically filter through this iterable, only unbanning banned players.</p>
+     * @param players Players to unban
+     * @since 1.0.0
+     * @throws IllegalArgumentException if iterable is null
+     */
+    public void unban(@NotNull Iterable<? extends OfflinePlayer> players) throws IllegalArgumentException {
+        unban(players, null);
+    }
+
+    /**
+     * <p>Unbans an iterable of players from this Division.</p>
+     * <p>This method will automatically filter through this iterable, only unbanning banned players.</p>
+     * @param players Players to unban
+     * @param initiator Optional Player who initiated the unban
+     * @since 1.0.0
+     * @throws IllegalArgumentException if iterable is null
+     */
+    public void unban(@NotNull Iterable<? extends OfflinePlayer> players, @Nullable OfflinePlayer initiator) throws IllegalArgumentException {
+        if (players == null) throw new IllegalArgumentException("Players cannot be null");
+
+        for (OfflinePlayer player : players) if (isBanned(player)) unban(player, initiator, false);
+        save();
+    }
+
+    /**
+     * Fetches the value of the inputted setting for this Division.
+     * @param setting Setting to fetch
+     * @return Value of setting
+     * @param <T> Type of setting
+     * @since 1.0.0
+     * @throws IllegalStateException if setting is not unlocked
+     * @throws IllegalArgumentException if setting is null
+     */
+    public <T> T getSetting(@NotNull DivSetting<T> setting) throws IllegalStateException, IllegalArgumentException {
+        if (setting == null) throw new IllegalArgumentException("Setting cannot be null");
+        if (getLevel() < setting.getUnlockedLevel()) throw new IllegalStateException("Setting is not unlocked");
+
+        return (T) settings.getOrDefault(setting, setting.getDefaultValue());
+    }
+
+    /**
+     * Sets the value of the inputted setting for this Division.
+     * @param setting Setting to fetch
+     * @param value Value to set
+     * @param <T> Type of setting
+     * @since 1.0.0
+     * @throws IllegalStateException if setting is not unlocked
+     * @throws IllegalArgumentException if setting or value is null
+     */
+    public <T> void setSetting(@NotNull DivSetting<T> setting, @NotNull T value) throws IllegalStateException, IllegalArgumentException {
+        if (setting == null) throw new IllegalArgumentException("Setting cannot be null");
+        if (value == null) throw new IllegalArgumentException("Value cannot be null");
+        if (getLevel() < setting.getUnlockedLevel()) throw new IllegalStateException("Setting is not unlocked");
+
+        settings.put(setting, value);
+        save();
+    }
+
+    // Overrides
+
+    @NotNull
+    @Override
+    public String toString() {
+        return "Division{" +
+                "id=" + id +
+                ", creation_date=" + creationDate +
+                ", owner='" + owner.getName() + '\'' +
+                ", name='" + name + '\'' +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Division division = (Division) o;
+        return creationDate == division.creationDate && id.equals(division.id) && name.equals(division.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, creationDate, name);
     }
 
     // Static Methods
@@ -520,6 +911,62 @@ public final class Division {
     }
 
     /**
+     * Fetches a Division by a member.
+     * @param member Division Member
+     * @return Division found, or null if not found
+     * @since 1.0.0
+     * @throws IllegalArgumentException if member is null
+     */
+    @Nullable
+    public static Division byMember(@NotNull OfflinePlayer member) throws IllegalArgumentException {
+        if (member == null) throw new IllegalArgumentException("member cannot be null");
+        return getDivisions()
+                .stream()
+                .filter(d -> d.getMembers().contains(member))
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Determines whether a Division exists by its name.
+     * @param name Division Name
+     * @return true if Division exists, false otherwise
+     * @since 1.0.0
+     */
+    public static boolean exists(@Nullable String name) {
+        if (name == null) return false;
+        return getDivisions()
+                .stream()
+                .anyMatch(d -> d.getName().equalsIgnoreCase(name));
+    }
+
+    /**
+     * Determines whether a Division exists by its unique identifier.
+     * @param id Division ID
+     * @return true if Division exists, false otherwise
+     * @since 1.0.0
+     */
+    public static boolean exists(@Nullable UUID id) {
+        if (id == null) return false;
+        return getDivisions()
+                .stream()
+                .anyMatch(d -> d.getUniqueId().equals(id));
+    }
+
+    /**
+     * Determines whether a Division exists by its owner.
+     * @param owner Division Owner
+     * @return true if Division exists, false otherwise
+     * @since 1.0.0
+     */
+    public static boolean exists(@Nullable OfflinePlayer owner) {
+        if (owner == null) return false;
+        return getDivisions()
+                .stream()
+                .anyMatch(d -> d.getOwner().equals(owner));
+    }
+
+    /**
      * Deletes a Division.
      * @param d Division to delete
      * @since 1.0.0
@@ -539,6 +986,7 @@ public final class Division {
      * Determines whether a player is in any division.
      * @param p Player to check
      * @return true if in a division, false otherwise
+     * @since 1.0.0
      * @throws IllegalArgumentException if player is null
      */
     public static boolean isInDivision(@NotNull OfflinePlayer p) throws IllegalArgumentException {
@@ -566,6 +1014,7 @@ public final class Division {
      * Converts a Division's level to the minimum required experience needed to get to that level.
      * @param level Division Level
      * @return Minimum Division Experience
+     * @since 1.0.0
      */
     public static double toExperience(int level) {
         if (level < 0) return 0;
@@ -670,46 +1119,82 @@ public final class Division {
         /**
          * Builds this Division.
          * @return Division
+         * @since 1.0.0
          */
         @NotNull
         public Division build() {
+            UUID id = UUID.randomUUID();
+            File folder = new File(DivConfig.getDivisionsDirectory(), id.toString());
+            Date now = new Date();
+            folder.mkdir();
+
+            Division d = new Division(folder, id, now.getTime(), owner);
+            d.prefix = prefix;
+            d.name = name;
+            d.tagline = tagline;
+
+            d.socialMedia.putAll(socialMedia);
+
+            AuditLogEntry entry = new AuditLogEntry(now, AuditLogEntry.Action.CREATED, d, owner);
+            d.auditLog.add(entry);
+
             DIVISION_CACHE.clear();
-            return null;
+            d.save();
+            d.writeLog(entry);
+
+            DivisionCreateEvent event = new DivisionCreateEvent(d);
+            Bukkit.getPluginManager().callEvent(event);
+
+            return d;
         }
 
     }
 
     // Writing & Reading
 
-    /**
-     * <p>Saves the logs for this Division.</p>
-     * <p>This method is automatically called every 24 hours from the plugin starting.</p>
-     */
-    public void saveLogs() {
+    private void writeLog(@NotNull AuditLogEntry entry) {
+        writeLog("audit", entry.toString());
+    }
+
+    private void writeLog(String type, String message) {
         try {
-            writeLogs();
+            String today = new SimpleDateFormat("yyyy-MM-dd").format(new Date()) + ".log";
+
+            File todayF = new File(new File(folder, "logs/" + message), today);
+            if (!todayF.exists()) {
+                todayF.getParentFile().mkdirs();
+                todayF.createNewFile();
+            }
+
+            String logPrefix = new SimpleDateFormat("[HH:mm:ss] ").format(new Date());
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(todayF, true))) {
+                writer.write(logPrefix + message);
+                writer.newLine();
+
+                writer.flush();
+            }
+        } catch (IOException e) {
+            DivConfig.print(e);
+        }
+    }
+
+    @NotNull
+    private List<String> getLog(String type) {
+        List<String> list = new ArrayList<>();
+        try {
+            String today = new SimpleDateFormat("yyyy-MM-dd").format(new Date()) + ".log";
+            File todayF = new File(new File(folder, "logs/" + type), today);
+            if (!todayF.exists()) return list;
+
+            try (BufferedReader reader = new BufferedReader(new FileReader(todayF))) {
+                String line;
+                while ((line = reader.readLine()) != null) list.add(line);
+            }
         } catch (IOException e) {
             DivConfig.print(e);
         }
 
-        messageLog.clear();
-    }
-
-    private void writeLogs() throws IOException {
-        File chatF = new File(folder, "logs/chat");
-        if (!chatF.exists()) chatF.mkdirs();
-
-        File today = new File(chatF, new SimpleDateFormat("yyyy-MM-dd").format(new Date()) + ".log");
-        if (!today.exists()) today.createNewFile();
-
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(today, true))) {
-            for (String s : messageLog) {
-                writer.write(s);
-                writer.newLine();
-            }
-
-            writer.flush();
-        }
+        return list;
     }
 
     /**
@@ -753,6 +1238,15 @@ public final class Division {
         );
         membersOs.close();
 
+        // Ban List
+
+        File bans = new File(folder, "bans.dat");
+        if (!bans.exists()) bans.createNewFile();
+
+        ObjectOutputStream bansOs = new ObjectOutputStream(Files.newOutputStream(bans.toPath()));
+        bansOs.writeObject(this.banList);
+        bansOs.close();
+
         // Achievements
         File achievements = new File(folder, "achievements.dat");
         if (!achievements.exists()) achievements.createNewFile();
@@ -760,6 +1254,27 @@ public final class Division {
         ObjectOutputStream achievementsOs = new ObjectOutputStream(Files.newOutputStream(achievements.toPath()));
         achievementsOs.writeObject(this.achievements);
         achievementsOs.close();
+
+        // Audit Log
+        File auditLog = new File(new File(folder, "logs/audit"), "audit.dat");
+        if (!auditLog.exists()) {
+            auditLog.getParentFile().mkdirs();
+            auditLog.createNewFile();
+        }
+
+        ObjectOutputStream auditLogOs = new ObjectOutputStream(Files.newOutputStream(auditLog.toPath()));
+        auditLogOs.writeObject(this.auditLog);
+        auditLogOs.close();
+
+        // Settings
+        File settings = new File(folder, "settings.yml");
+        if (!settings.exists()) settings.createNewFile();
+
+        YamlConfiguration settingsYml = new YamlConfiguration();
+        for (Map.Entry<DivSetting<?>, Object> entry : this.settings.entrySet())
+            settingsYml.set(entry.getKey().getKey(), entry.getValue());
+
+        settingsYml.save(settings);
 
         // Other Information
 
@@ -796,7 +1311,7 @@ public final class Division {
         OfflinePlayer owner = Bukkit.getOfflinePlayer((UUID) infoIs.readObject());
         infoIs.close();
 
-        Division d = new Division(folder, id, creationDate, owner, false);
+        Division d = new Division(folder, id, creationDate, owner);
 
         // Members
 
@@ -811,6 +1326,17 @@ public final class Division {
                 .stream()
                 .map(Bukkit::getOfflinePlayer)
                 .collect(Collectors.toList()));
+
+        // Ban List
+
+        File bans = new File(folder, "bans.dat");
+        if (!bans.exists()) throw new IllegalStateException("Could not find: bans.dat");
+
+        ObjectInputStream bansIs = new ObjectInputStream(Files.newInputStream(bans.toPath()));
+        List<UUID> banIds = (List<UUID>) bansIs.readObject();
+        bansIs.close();
+
+        d.banList.addAll(banIds);
 
         // Achievements
 
@@ -835,6 +1361,8 @@ public final class Division {
         d.prefix = oConfig.getString("prefix");
         d.tagline = oConfig.getString("tagline", "");
 
+        // Social Media
+
         File socials = new File(folder, "socials.dat");
         if (!socials.exists()) throw new IllegalStateException("Could not find: socials.dat");
 
@@ -843,6 +1371,17 @@ public final class Division {
         socialsIs.close();
 
         d.socialMedia.putAll(socialsMap);
+
+        // Settings
+
+        File settings = new File(folder, "settings.yml");
+        if (!settings.exists()) throw new IllegalStateException("Could not find: settings.yml");
+
+        YamlConfiguration settingsYml = YamlConfiguration.loadConfiguration(settings);
+        for (DivSetting<?> setting : DivSetting.values()) {
+            if (toLevel(d.experience) < setting.getUnlockedLevel()) continue;
+            d.settings.put(setting, settingsYml.get(setting.getKey()));
+        }
 
         return d;
     }
