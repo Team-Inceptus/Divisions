@@ -1,6 +1,7 @@
 package us.teaminceptus.divisions.api.player;
 
 import org.jetbrains.annotations.NotNull;
+import us.teaminceptus.divisions.api.DivConfig;
 
 import java.util.Arrays;
 import java.util.List;
@@ -50,7 +51,7 @@ public final class PlayerSetting<T> {
      */
     @NotNull
     public String getDisplayName() {
-        return displayKey;
+        return DivConfig.getConfiguration().get(displayKey);
     }
 
 
