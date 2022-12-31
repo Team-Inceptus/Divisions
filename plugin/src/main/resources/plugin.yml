@@ -6,3 +6,26 @@ description: ${project.description}
 author: GamerCoder215
 load: POSTWORLD
 softdepend: [PlaceholderAPI]
+permissions:
+  divisions.*:
+    description: Gives access to all Divisions commands
+    default: op
+    children:
+      divisions.admin: true
+      divisions.user: true
+  divisions.admin:
+    description: Allows access to all Division Admin commands
+    default: op
+  divisions.user:
+    description: Allows access to all Division Yser commands
+    default: true
+  # User
+  divisions.user.create:
+    description: Allows access to create a Division
+    default: true
+  divisions.user.delete:
+    description: Allows access to delete a Division
+    default: true
+  divisions.user.join:
+    description: Allows access to join a Division
+    default: true
