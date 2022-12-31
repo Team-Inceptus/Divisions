@@ -1,6 +1,5 @@
 package us.teaminceptus.divisions.api.division;
 
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
